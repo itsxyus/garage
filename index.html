@@ -1946,47 +1946,63 @@ body{
 }
 
 
-/* v6.7 timeline visual upgrade: breathing dots */
-.timeline-entry .dot{
-  animation:dotBreathe 2.4s ease-in-out infinite;
-  transform-origin:center;
+/* v7 cloud sync */
+.cloud-card{
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  background:rgba(8,10,15,.52);
+  padding:14px;
+  margin:14px 0 16px;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
 }
 
-.timeline-entry:nth-child(2n) .dot{
-  animation-delay:.35s;
+.cloud-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
 }
 
-.timeline-entry:nth-child(3n) .dot{
-  animation-delay:.7s;
+.cloud-top h3{
+  margin:0;
+  font-size:1.05rem;
+  font-weight:500;
 }
 
-@keyframes dotBreathe{
-  0%,100%{
-    transform:scale(1);
-    box-shadow:0 0 10px color-mix(in srgb, var(--accent,#ff3b3b) 45%, transparent);
+.cloud-top p{
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:.88rem;
+}
+
+.auth-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr auto auto;
+  gap:8px;
+  align-items:center;
+}
+
+.cloud-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:10px;
+}
+
+@media(max-width:700px){
+  .cloud-top{
+    align-items:flex-start;
   }
-  50%{
-    transform:scale(1.28);
-    box-shadow:0 0 20px color-mix(in srgb, var(--accent,#ff3b3b) 75%, transparent);
-  }
-}
 
-@supports not (color: color-mix(in srgb, red, transparent)){
-  @keyframes dotBreathe{
-    0%,100%{
-      transform:scale(1);
-      box-shadow:0 0 10px rgba(255,59,59,.45);
-    }
-    50%{
-      transform:scale(1.28);
-      box-shadow:0 0 20px rgba(255,59,59,.75);
-    }
+  .auth-grid{
+    grid-template-columns:1fr;
   }
-}
 
-@media (prefers-reduced-motion: reduce){
-  .timeline-entry .dot{
-    animation:none !important;
+  .cloud-actions .btn,
+  .cloud-top .btn{
+    flex:1;
   }
 }
 
@@ -2049,6 +2065,30 @@ body{
   <main id="settingsPage" class="page">
     <section class="section">
       <div class="section-head"><h2>Settings</h2></div>
+
+      <div class="cloud-card">
+        <div class="cloud-top">
+          <div>
+            <h3>Cloud Sync</h3>
+            <p id="cloudStatus">Local mode</p>
+          </div>
+          <button class="btn" id="cloudRefreshBtn" onclick="cloudLoad()" type="button">Load Cloud</button>
+        </div>
+
+        <div class="auth-grid" id="authBox">
+          <input id="authEmail" type="email" placeholder="email">
+          <input id="authPassword" type="password" placeholder="password">
+          <button class="btn red" onclick="cloudSignIn()" type="button">Log In</button>
+          <button class="btn" onclick="cloudSignUp()" type="button">Sign Up</button>
+        </div>
+
+        <div class="cloud-actions">
+          <button class="btn red" onclick="cloudSaveNow()" type="button">Save to Cloud</button>
+          <button class="btn" onclick="cloudLoad()" type="button">Load from Cloud</button>
+          <button class="btn danger" onclick="cloudSignOut()" type="button">Log Out</button>
+        </div>
+      </div>
+
       <div class="form">
         <label>Car Name<input id="settingsCarName" oninput="data.carName=this.value;save();syncSettingsToGarage();renderHero()"></label>
         <label>Year<input id="settingsCarYear" inputmode="numeric" oninput="data.carYear=this.value;save();syncSettingsToGarage();renderHero()"></label>
@@ -2096,9 +2136,17 @@ body{
   <button class="tab" onclick="showPage('settingsPage',this)"><span class="ico">⚙️</span><span class="txt">Settings</span></button>
 </nav>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const KEY="clifford_build_log_v3";
 const OWNED_DATE = new Date("2025-12-30T00:00:00");
+const SUPABASE_URL="https://dcmpjxpqjyxcgztrnrsn.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjbXBqeHBxanl4Y2d6dHJucnNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MDY4NTYsImV4cCI6MjA5NDQ4Mjg1Nn0.H7wlpRbc5eT-b60oXQJ0nFm9_-V5NuTmUrFR3C8vU24";
+let supabaseClient=null;
+let cloudUser=null;
+let cloudSaveTimer=null;
+let isCloudLoading=false;
+
 const fallbackImg="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='260'%3E%3Crect width='100%25' height='100%25' rx='28' fill='%230b0d11'/%3E%3Cpath d='M62 165 C92 110,145 95,232 110 C292 120,322 146,343 166' fill='none' stroke='%23ff3b3b' stroke-width='9' stroke-linecap='round'/%3E%3Ccircle cx='124' cy='174' r='28' fill='%23090a0d' stroke='%23686d76' stroke-width='7'/%3E%3Ccircle cx='282' cy='174' r='28' fill='%23090a0d' stroke='%23686d76' stroke-width='7'/%3E%3Ctext x='200' y='72' fill='white' text-anchor='middle' font-family='Arial' font-size='30' font-weight='800'%3EClifford%3C/text%3E%3C/svg%3E";
 
 let data={
@@ -2164,7 +2212,10 @@ function load(){
     else if(v1)migrate(JSON.parse(v1));
   }catch(e){}
 }
-function save(){localStorage.setItem(KEY,JSON.stringify(data))}
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(data));
+  scheduleCloudSave();
+}
 function money(v){const n=parseFloat(v);return isNaN(n)?"$0.00":n.toLocaleString(undefined,{style:"currency",currency:"USD"})}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function imgFor(m){return m.image&&m.image.trim()?m.image.trim():fallbackImg}
@@ -2500,6 +2551,190 @@ function initSwipe(){
 
 
 
+
+function setCloudStatus(text){
+  const el=document.getElementById("cloudStatus");
+  if(el) el.textContent=text;
+}
+
+async function initCloud(){
+  if(!window.supabase){
+    setCloudStatus("Cloud library blocked. Local mode.");
+    return;
+  }
+
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true
+    }
+  });
+
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+  cloudUser = sessionData && sessionData.session ? sessionData.session.user : null;
+
+  updateCloudUI();
+
+  supabaseClient.auth.onAuthStateChange(async (event, session)=>{
+    cloudUser = session ? session.user : null;
+    updateCloudUI();
+
+    if(event === "SIGNED_IN"){
+      await cloudLoad(true);
+    }
+  });
+
+  if(cloudUser){
+    await cloudLoad(true);
+  }
+}
+
+function updateCloudUI(){
+  const authBox=document.getElementById("authBox");
+  if(authBox) authBox.style.display = cloudUser ? "none" : "grid";
+
+  if(cloudUser){
+    setCloudStatus(`Signed in: ${cloudUser.email}`);
+  }else{
+    setCloudStatus("Local mode. Log in to sync.");
+  }
+}
+
+async function cloudSignUp(){
+  if(!supabaseClient) return setCloudStatus("Cloud not ready.");
+  const email=document.getElementById("authEmail")?.value?.trim();
+  const password=document.getElementById("authPassword")?.value || "";
+
+  if(!email || password.length < 6){
+    alert("Use an email and a password with at least 6 characters.");
+    return;
+  }
+
+  setCloudStatus("Creating account...");
+  const { data: signData, error } = await supabaseClient.auth.signUp({ email, password });
+
+  if(error){
+    alert(error.message);
+    updateCloudUI();
+    return;
+  }
+
+  cloudUser = signData.user || cloudUser;
+  updateCloudUI();
+
+  if(signData.session){
+    await cloudSaveNow();
+  }else{
+    setCloudStatus("Check your email to confirm, then log in.");
+  }
+}
+
+async function cloudSignIn(){
+  if(!supabaseClient) return setCloudStatus("Cloud not ready.");
+  const email=document.getElementById("authEmail")?.value?.trim();
+  const password=document.getElementById("authPassword")?.value || "";
+
+  if(!email || !password){
+    alert("Enter your email and password.");
+    return;
+  }
+
+  setCloudStatus("Logging in...");
+  const { data: signData, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+  if(error){
+    alert(error.message);
+    updateCloudUI();
+    return;
+  }
+
+  cloudUser = signData.user;
+  updateCloudUI();
+  await cloudLoad(true);
+}
+
+async function cloudSignOut(){
+  if(!supabaseClient) return;
+  await supabaseClient.auth.signOut();
+  cloudUser=null;
+  updateCloudUI();
+}
+
+function scheduleCloudSave(){
+  if(isCloudLoading) return;
+  if(!supabaseClient || !cloudUser) return;
+
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer=setTimeout(()=>cloudSaveNow(true),900);
+}
+
+async function cloudSaveNow(silent=false){
+  if(!supabaseClient || !cloudUser){
+    if(!silent) alert("Log in first.");
+    return;
+  }
+
+  try{
+    if(!silent) setCloudStatus("Saving to cloud...");
+
+    const payload = {
+      user_id: cloudUser.id,
+      data: data,
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabaseClient
+      .from("garage_data")
+      .upsert(payload, { onConflict:"user_id" });
+
+    if(error) throw error;
+
+    setCloudStatus(`Cloud saved • ${new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})}`);
+  }catch(err){
+    console.error(err);
+    setCloudStatus("Cloud save failed. Local changes are still saved.");
+    if(!silent) alert(err.message || "Cloud save failed.");
+  }
+}
+
+async function cloudLoad(auto=false){
+  if(!supabaseClient || !cloudUser){
+    if(!auto) alert("Log in first.");
+    return;
+  }
+
+  try{
+    setCloudStatus("Loading cloud data...");
+
+    const { data: row, error } = await supabaseClient
+      .from("garage_data")
+      .select("data,updated_at")
+      .eq("user_id", cloudUser.id)
+      .maybeSingle();
+
+    if(error) throw error;
+
+    if(row && row.data && Object.keys(row.data).length){
+      isCloudLoading=true;
+      data = { ...data, ...row.data };
+      localStorage.setItem(KEY, JSON.stringify(data));
+      isCloudLoading=false;
+      render();
+      setCloudStatus(`Cloud loaded • ${new Date(row.updated_at).toLocaleString()}`);
+    }else{
+      setCloudStatus("No cloud data yet. Saving this garage...");
+      await cloudSaveNow(true);
+    }
+  }catch(err){
+    console.error(err);
+    isCloudLoading=false;
+    setCloudStatus("Cloud load failed. Local mode still works.");
+    if(!auto) alert(err.message || "Cloud load failed.");
+  }
+}
+
+
 function pickPhoto(type, index=null){
   if(type === "hero"){
     const input = document.getElementById("heroPhotoInput");
@@ -2784,6 +3019,7 @@ function resetAll(){if(confirm("Full reset everything? This clears saved data on
 
 load();
 render();
+initCloud();
 setInterval(()=>{updateOwnedTime(); renderTimeline();},30000);
 </script>
 </body>
