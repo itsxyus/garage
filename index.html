@@ -429,6 +429,131 @@ input[type=range]{accent-color:var(--accent)}
   }
 }
 
+
+/* v1.5 fixes: My Garage nav, settings cleanup, services mobile fit, sort */
+#myGarageBtn{
+  position:relative;
+  z-index:120;
+}
+
+.settings-inline-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+  align-items:end;
+  margin-top:6px;
+}
+
+.settings-inline-row .color-row{
+  margin-top:0;
+}
+
+.settings-inline-row .btn{
+  height:42px;
+  white-space:nowrap;
+}
+
+.mini-toast{
+  position:fixed;
+  left:50%;
+  bottom:calc(86px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);
+  z-index:999;
+  background:rgba(10,12,18,.86);
+  border:1px solid rgba(255,255,255,.14);
+  color:var(--text);
+  padding:10px 16px;
+  border-radius:999px;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  box-shadow:0 12px 32px rgba(0,0,0,.35);
+}
+
+#bgPhotoInput.real-file-input{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+  display:block !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+}
+
+#servicesPage .section{
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
+}
+
+#servicesList{
+  width:100%;
+  max-width:100%;
+}
+
+.service-row{
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
+}
+
+.service-row > div:first-child{
+  min-width:0;
+  max-width:100%;
+}
+
+.service-row .editor{
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
+}
+
+.service-row .form-grid{
+  width:100%;
+  max-width:100%;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+.service-row input,
+.service-row select,
+.service-row textarea{
+  min-width:0;
+  width:100%;
+  max-width:100%;
+}
+
+@media(max-width:720px){
+  .service-row{
+    grid-template-columns:1fr !important;
+    gap:8px;
+  }
+
+  .service-row .due{
+    text-align:left;
+    justify-self:start;
+  }
+
+  .service-row .form-grid{
+    grid-template-columns:1fr 1fr !important;
+    gap:9px;
+  }
+}
+
+@media(max-width:430px){
+  .service-row .form-grid{
+    grid-template-columns:1fr !important;
+  }
+
+  .settings-inline-row{
+    grid-template-columns:1fr;
+  }
+
+  .settings-inline-row .btn{
+    width:100%;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -485,7 +610,7 @@ input[type=range]{accent-color:var(--accent)}
 
   <div id="carApp" class="hidden">
     <div class="back-row">
-      <button class="btn" onclick="showGarageHome()">← My Garage</button>
+      <button class="btn" id="myGarageBtn" type="button" onclick="return goToGarageHome(event)">← My Garage</button>
       <h2 id="activeCarLabel">Car Log</h2>
     </div>
 
@@ -548,7 +673,12 @@ input[type=range]{accent-color:var(--accent)}
           <label>Engine<input id="setEngine" oninput="activeCar().engine=this.value;save();render()"></label>
           <label>Purchase Date<input id="setPurchaseDate" type="date" onchange="activeCar().purchaseDate=this.value;save();renderTimeline()" oninput="activeCar().purchaseDate=this.value;save();renderTimeline()"></label>
           <label>Purchase Mileage<input id="setPurchaseMileage" inputmode="numeric" oninput="activeCar().purchaseMileage=this.value;save();renderTimeline()"></label>
-          <label class="span2">Accent Color<div class="color-row"><input id="setAccent" type="color" oninput="activeCar().accent=this.value;save();render()"><span>Live theme</span></div></label>
+          <label class="span2">Accent Color
+            <div class="settings-inline-row">
+              <div class="color-row"><input id="setAccent" type="color" oninput="activeCar().accent=this.value;save();render()"><span>Live theme</span></div>
+              <button class="btn red" type="button" onclick="saveCarInfo()">Save Car Info</button>
+            </div>
+          </label>
           <label class="span2">Background Opacity<input id="setBgOpacity" type="range" min=".25" max="1" step=".01" oninput="activeCar().backgroundOpacity=this.value;save();renderHero()"></label>
           <label class="span2">Background URL<input id="setBgUrl" oninput="activeCar().backgroundImage=this.value;save();renderHero()" placeholder="optional direct image link"></label>
           <label class="span2">Background Photo
@@ -557,7 +687,7 @@ input[type=range]{accent-color:var(--accent)}
               <button class="btn" type="button" onclick="useHeroAsBackground()">Use Hero</button>
               <button class="btn danger" type="button" onclick="activeCar().backgroundImage='';save();renderHero()">Reset</button>
             </div>
-            <input id="bgPhotoInput" type="file" accept="image/png,image/jpeg,image/webp,image/*" onchange="handleBackgroundFile(event)">
+            <input id="bgPhotoInput" class="real-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/*" onchange="handleBackgroundFile(event)">
           </label>
           <label class="full">Goals<textarea id="setGoals" oninput="activeCar().goals=this.value;save()"></textarea></label>
         </div>
@@ -1010,6 +1140,36 @@ function initGarageSwipe(){
   });
 }
 
+
+function saveCarInfo(){
+  const c = activeCar();
+  if(!c) return;
+
+  c.name = setCarName.value || c.name || "New Car";
+  c.year = setYear.value || "";
+  c.make = setMake.value || "";
+  c.model = setModel.value || "";
+  c.chassis = setChassis.value || "N/A";
+  c.engine = setEngine.value || "N/A";
+  c.purchaseDate = setPurchaseDate.value || "";
+  c.purchaseMileage = setPurchaseMileage.value || "";
+  c.accent = setAccent.value || "#ff3b3b";
+  c.backgroundOpacity = setBgOpacity.value || ".65";
+  c.backgroundImage = setBgUrl.value || c.backgroundImage || "";
+  c.goals = setGoals.value || "";
+
+  save();
+  render();
+  const old = document.getElementById("carInfoSavedToast");
+  if(old) old.remove();
+  const t = document.createElement("div");
+  t.id = "carInfoSavedToast";
+  t.textContent = "Saved";
+  t.className = "mini-toast";
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),1200);
+}
+
 function renderSettings(){
   const c=activeCar();if(!c)return;
   setCarName.value=c.name||"";
@@ -1045,36 +1205,23 @@ function renderMods(){
 function itemHTML(m){return `<div class="item-row" onclick="toggleEditor('mod-${m.id}')"><img class="thumb" src="${esc(m.image||fallbackImg)}" onclick="event.stopPropagation();pickModPhoto('${m.id}')" onerror="this.src=fallbackImg"><div><h3>${esc(m.name||"New Item")}</h3><div class="sub">${esc(m.brand||m.status||"Planned")}</div></div><div class="price">${money(m.price)}</div><div class="chev">›</div></div><div class="editor" id="mod-${m.id}"><div class="form-grid"><label>Category<input value="${esc(m.category)}" oninput="getMod('${m.id}').category=this.value;save()"></label><label class="span2">Name<input value="${esc(m.name)}" oninput="getMod('${m.id}').name=this.value;save()"></label><label>Price<input type="number" value="${esc(m.price)}" oninput="getMod('${m.id}').price=this.value;save();renderTotals()"></label><label>Brand<input value="${esc(m.brand)}" oninput="getMod('${m.id}').brand=this.value;save()"></label><label>Status<select onchange="getMod('${m.id}').status=this.value;save();renderTotals()">${["Installed","Ordered","Planned"].map(s=>`<option ${m.status===s?"selected":""}>${s}</option>`).join("")}</select></label><label>Date<input type="date" value="${esc(m.date)}" oninput="getMod('${m.id}').date=this.value;save();renderTimeline()"></label><label class="full">Notes<textarea oninput="getMod('${m.id}').notes=this.value;save()">${esc(m.notes)}</textarea></label></div><div class="bg-control-row"><button class="btn" onclick="pickModPhoto('${m.id}')">Photo</button><button class="btn danger" onclick="deleteMod('${m.id}')">Delete</button></div></div>`}
 function getMod(id){return activeCar().mods.find(m=>m.id===id)}
 function toggleEditor(id){document.getElementById(id)?.classList.toggle("open")}
-function sortCategory(cat,val){const c=activeCar();let arr=c.mods.filter(m=>m.category===cat);if(val==="priceHigh")arr.sort((a,b)=>(parseFloat(b.price)||0)-(parseFloat(a.price)||0));if(val==="priceLow")arr.sort((a,b)=>(parseFloat(a.price)||0)-(parseFloat(b.price)||0));if(val==="dateDesc")arr.sort((a,b)=>(b.date||"").localeCompare(a.date||""));if(val==="dateAsc")arr.sort((a,b)=>(a.date||"").localeCompare(b.date||""));c.mods=c.mods.filter(m=>m.category!==cat).concat(arr);save();renderMods()}
-
-function addService(){activeCar().services.push({id:uid(),name:"New Service",date:"",mileage:"",intervalMiles:"",intervalMonths:"",cost:"",notes:""});save();renderServices()}
-function deleteService(id){activeCar().services=activeCar().services.filter(s=>s.id!==id);save();render()}
-function dueInfo(s){const c=parseInt(activeCar().currentMileage||"0"),d=parseInt(s.mileage||"0"),i=parseInt(s.intervalMiles||"0");if(!c||!d||!i)return{text:"Add mileage",cls:"warn",next:"—"};const next=d+i,left=next-c;if(left<=0)return{text:`Overdue ${Math.abs(left).toLocaleString()} mi`,cls:"bad",next:`${next.toLocaleString()} mi`};if(left<=1000)return{text:`${left.toLocaleString()} mi left`,cls:"warn",next:`${next.toLocaleString()} mi`};return{text:`${left.toLocaleString()} mi left`,cls:"good",next:`${next.toLocaleString()} mi`}}
-function renderServices(){const c=activeCar();currentMileage.value=c.currentMileage||"";servicesList.innerHTML=c.services.map(s=>{const d=dueInfo(s);return `<div class="service-row"><div><div class="service-title">${esc(s.name)}</div><div class="service-sub">${esc(s.date||"No date")} • ${s.mileage?Number(s.mileage).toLocaleString()+" mi":"No mileage"} • ${money(s.cost)}</div><div class="editor open" style="display:block;margin-top:10px"><div class="form-grid"><label>Service<input value="${esc(s.name)}" oninput="getService('${s.id}').name=this.value;save();renderTimeline()"></label><label>Date<input type="date" value="${esc(s.date)}" oninput="getService('${s.id}').date=this.value;save();renderTimeline()"></label><label>Mileage<input type="number" value="${esc(s.mileage)}" oninput="getService('${s.id}').mileage=this.value;save();renderTimeline()"></label><label>Cost<input type="number" value="${esc(s.cost)}" oninput="getService('${s.id}').cost=this.value;save();renderTotals()"></label><label>Interval Miles<input type="number" value="${esc(s.intervalMiles)}" oninput="getService('${s.id}').intervalMiles=this.value;save();renderServices()"></label><label>Interval Months<input type="number" value="${esc(s.intervalMonths)}" oninput="getService('${s.id}').intervalMonths=this.value;save()"></label><label class="span2">Notes<input value="${esc(s.notes)}" oninput="getService('${s.id}').notes=this.value;save();renderTimeline()"></label></div><button class="btn danger" onclick="deleteService('${s.id}')">Delete</button></div></div><div class="due ${d.cls}">${d.text}</div></div>`}).join("")}
-function getService(id){return activeCar().services.find(s=>s.id===id)}
-
-function formatDate(d){try{return new Date(d+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}catch(e){return d}}
-function renderTimeline(){const c=activeCar();let events=[];c.mods.filter(m=>m.date).forEach(m=>events.push({date:m.date,title:m.name,sub:`${m.category}${m.price?" • "+money(m.price):""}`}));c.services.filter(s=>s.date).forEach(s=>events.push({date:s.date,title:s.name,sub:`${s.mileage?Number(s.mileage).toLocaleString()+" mi":"Service"}${s.notes?" • "+s.notes:""}`}));events.sort((a,b)=>b.date.localeCompare(a.date));if(c.purchaseDate)events.push({date:c.purchaseDate,title:`Got ${c.name||"the car"}`,sub:`First day${c.purchaseMileage?" • "+Number(c.purchaseMileage).toLocaleString()+" mi":""}`});ownedCard.innerHTML=c.purchaseDate?`<span class="status">Owned since ${formatDate(c.purchaseDate)}</span><br><b>${c.purchaseMileage?Number(c.purchaseMileage).toLocaleString()+" mi at purchase":"Purchase mileage not set"}</b>`:`<span class="status">Purchase timeline entry not set.</span>`;timelineList.innerHTML=events.map(e=>`<div class="timeline-entry"><div class="dot"></div><div><div class="timeline-title">${esc(e.title)}</div><div class="timeline-sub">${esc(e.sub)}</div></div><div class="timeline-date">${formatDate(e.date)}</div></div>`).join("")}
-function deletePurchaseEntry(){const c=activeCar();c.purchaseDate="";c.purchaseMileage="";save();render()}
-
-
-function deleteTimelineEvent(kind,id){
+function sortCategory(cat,val){
   const c=activeCar();
   if(!c) return;
 
-  if(kind==="purchase"){
-    c.purchaseDate="";
-    c.purchaseMileage="";
-  }else if(kind==="mod"){
-    const m=c.mods.find(x=>x.id===id);
-    if(m) m.date="";
-  }else if(kind==="service"){
-    const s=c.services.find(x=>x.id===id);
-    if(s) s.date="";
-  }
+  const belongs = m => (m.category || cat) === cat;
+  const arr = c.mods.filter(belongs);
+  const others = c.mods.filter(m => !belongs(m));
 
+  if(val==="priceHigh") arr.sort((a,b)=>(parseFloat(b.price)||0)-(parseFloat(a.price)||0));
+  else if(val==="priceLow") arr.sort((a,b)=>(parseFloat(a.price)||0)-(parseFloat(b.price)||0));
+  else if(val==="dateDesc") arr.sort((a,b)=>(b.date||"0000-00-00").localeCompare(a.date||"0000-00-00"));
+  else if(val==="dateAsc") arr.sort((a,b)=>(a.date||"9999-99-99").localeCompare(b.date||"9999-99-99"));
+  else return;
+
+  c.mods = others.concat(arr);
   save();
-  renderTimeline();
+  renderMods();
 }
 
 let contextTimeline = {kind:null,id:null};
@@ -1133,3 +1280,12 @@ load();render();initCloud();
 </script>
 </body>
 </html>
+function goToGarageHome(event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  showGarageHome();
+  return false;
+}
+
