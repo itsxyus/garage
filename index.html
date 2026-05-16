@@ -5,206 +5,367 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>My Garage</title>
 <style>
-:root{--accent:#ff3b3b;--text:#f6f6f6;--muted:#a5a8b2;--line:rgba(255,255,255,.13);--glass:rgba(10,12,18,.72);--bad:#ff5b63;--warn:#ffcc4d;--good:#54db8d}
+:root{
+  --accent:#ff3b3b;
+  --text:#f6f6f6;
+  --muted:#a5a8b2;
+  --line:rgba(255,255,255,.14);
+  --glass:rgba(10,12,18,.72);
+  --bad:#ff5b63;
+  --warn:#ffcc4d;
+  --good:#54db8d;
+}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%;overflow-x:hidden}
-body{color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:linear-gradient(rgba(4,5,8,.72),rgba(4,5,8,.84)),var(--custom-bg,url("https://tailofthedragon.com/wp-content/uploads/2025/06/TODInfoTopFeaturedMaybe.jpg")) center/cover fixed no-repeat;padding:env(safe-area-inset-top) 14px calc(88px + env(safe-area-inset-bottom));}
-button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
-.glass{background:var(--glass);border:1px solid var(--line);border-radius:22px;backdrop-filter:blur(18px) saturate(125%);-webkit-backdrop-filter:blur(18px) saturate(125%);box-shadow:0 18px 45px rgba(0,0,0,.32)}
+body{
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  background:
+    linear-gradient(rgba(4,5,8,.72),rgba(4,5,8,.84)),
+    var(--custom-bg,url("https://tailofthedragon.com/wp-content/uploads/2025/06/TODInfoTopFeaturedMaybe.jpg")) center/cover fixed no-repeat;
+  padding:env(safe-area-inset-top) 14px calc(88px + env(safe-area-inset-bottom));
+}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+.glass{
+  background:var(--glass);
+  border:1px solid var(--line);
+  border-radius:22px;
+  backdrop-filter:blur(18px) saturate(125%);
+  -webkit-backdrop-filter:blur(18px) saturate(125%);
+  box-shadow:0 18px 45px rgba(0,0,0,.32);
+}
 .app{width:min(1120px,100%);margin:0 auto;padding:18px 0 26px}
-.btn{border:1px solid var(--line);background:rgba(255,255,255,.055);color:var(--text);border-radius:14px;padding:10px 13px;font-weight:500}
-.btn.primary{background:linear-gradient(135deg,var(--accent),rgba(90,0,0,.85));border-color:var(--accent);color:white}
+.btn{
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.055);
+  color:var(--text);
+  border-radius:14px;
+  padding:10px 13px;
+  font-weight:500;
+}
+.btn.primary{
+  background:linear-gradient(135deg,var(--accent),rgba(90,0,0,.85));
+  border-color:var(--accent);
+  color:white;
+}
 .btn.danger{background:rgba(80,10,15,.74);border-color:rgba(255,80,90,.5);color:#ffd7d9}
-input,select,textarea{width:100%;min-width:0;background:rgba(6,8,13,.76);color:var(--text);border:1px solid rgba(255,255,255,.13);border-radius:13px;padding:11px;outline:none}
+input,select,textarea{
+  width:100%;
+  min-width:0;
+  background:rgba(6,8,13,.76);
+  color:var(--text);
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:13px;
+  padding:11px;
+  outline:none;
+}
 textarea{min-height:70px;resize:vertical}
-label{display:block;color:var(--muted);text-transform:uppercase;letter-spacing:.075em;font-size:.72rem;font-weight:500}label input,label select,label textarea{margin-top:6px}
-.form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.span2{grid-column:span 2}.full{grid-column:1/-1}
-.auth-overlay{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(0,0,0,.48);backdrop-filter:blur(18px)}
-.auth-card{width:min(440px,100%);padding:22px;animation:pop .28s ease both}.auth-card h1{margin:0;font-size:2.25rem;letter-spacing:-.05em;font-weight:650}.auth-card p,.status{color:var(--muted)}
-.auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.auth-actions .guest{grid-column:1/-1}@keyframes pop{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
-.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:6px 0 16px}.topbar h1{margin:0;font-size:2.15rem;letter-spacing:-.05em;font-weight:650}.status{font-size:.88rem;margin-top:4px}
+label{display:block;color:var(--muted);text-transform:uppercase;letter-spacing:.075em;font-size:.72rem;font-weight:500}
+label input,label select,label textarea{margin-top:6px}
+.form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.span2{grid-column:span 2}.full{grid-column:1/-1}
+
+/* Auth */
+.auth-overlay{
+  position:fixed;
+  inset:0;
+  z-index:500;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:22px;
+  background:rgba(0,0,0,.50);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+.auth-card{width:min(440px,100%);padding:22px;animation:pop .28s ease both}
+.auth-card h1{margin:0;font-size:2.25rem;letter-spacing:-.05em;font-weight:650}
+.auth-card p,.status{color:var(--muted)}
+.auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.auth-actions .guest{grid-column:1/-1}
+@keyframes pop{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+
+/* Garage */
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:6px 0 16px}
+.topbar h1{margin:0;font-size:2.15rem;letter-spacing:-.05em;font-weight:650}
+.status{font-size:.88rem;margin-top:4px}
 .garage-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
-.car-wrap,.mod-wrap{position:relative;overflow:hidden;border-radius:22px}.delete-bg{position:absolute;inset:0 0 0 auto;width:112px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#5a1016,#c92c34);color:white;font-weight:650;opacity:0;transform:translateX(18px);transition:.18s ease;z-index:0}.show-delete .delete-bg{opacity:1;transform:none}
-.car-card{position:relative;z-index:1;display:block;width:100%;min-height:180px;padding:16px;color:var(--text);text-align:left;transition:transform .22s ease}.car-card.swiped,.mod-card.swiped{transform:translateX(-112px)}
-.car-card img{width:100%;height:108px;object-fit:contain;margin-bottom:10px}.car-card h2{margin:0;font-size:1.35rem;font-weight:600}.car-card p{margin:5px 0 0;color:var(--muted)}
-.add-card{min-height:180px;display:flex;align-items:center;justify-content:center;text-align:center;border:1px dashed rgba(255,255,255,.22);cursor:pointer}.add-card b{font-size:1.15rem}.add-card span{display:block;color:var(--muted);margin-top:6px}
-.back-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.back-row h2{margin:0;color:var(--muted);font-size:1rem;font-weight:450}
-.hero{padding:12px;margin-bottom:14px}.hero-main{display:grid;grid-template-columns:48% 52%;align-items:center;gap:8px;min-height:168px;overflow:hidden}.hero-img{width:100%;height:155px;object-fit:contain;cursor:pointer}.hero-title h1{margin:0;font-size:2rem;letter-spacing:-.045em;font-weight:620;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.model{color:var(--accent);font-size:.9rem;margin-top:7px}.tags{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.tag{border:1px solid var(--line);border-radius:12px;padding:7px 12px;background:rgba(255,255,255,.04)}
-.total-card{margin-top:10px;padding:14px 16px;border-radius:18px;background:rgba(8,10,15,.52);border:1px solid var(--line)}.total-row{display:grid;grid-template-columns:1fr auto;gap:16px;min-height:24px;align-items:center}.total-row span{color:#d9d9df}.total-row b{font-weight:450;text-align:right}.total-row.main span{color:var(--muted)}.total-row.main b{color:var(--accent);font-weight:600}
-.page{display:none;animation:fade .2s ease both}.page.active{display:block}@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
-.section{padding:16px;margin:14px 0}.section-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.09)}.section-head h2{margin:0;font-size:1.5rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.section-controls{display:grid;grid-template-columns:116px auto;gap:8px}.sort-select{height:40px;padding:8px;font-size:.82rem}
-.mod-card{position:relative;z-index:1;display:grid;grid-template-columns:82px minmax(0,1fr) auto 12px;gap:10px;align-items:center;padding:15px 0;border-bottom:1px solid rgba(255,255,255,.08);transition:transform .22s ease;touch-action:pan-y;cursor:pointer}.thumb{width:82px;height:76px;border-radius:14px;object-fit:cover;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.11)}.mod-card h3{margin:0;font-size:1rem;font-weight:550;line-height:1.15}.sub{color:var(--muted);font-size:.82rem;margin-top:5px}.price{color:var(--accent);font-weight:600;white-space:nowrap}.chev{color:var(--muted)}
-.empty-cat{display:grid;grid-template-columns:82px 1fr;gap:12px;align-items:center;padding:18px 0;color:var(--muted);cursor:pointer}.empty-thumb{width:82px;height:76px;border:1px dashed rgba(255,255,255,.25);border-radius:14px;display:flex;align-items:center;justify-content:center}
-.editor{display:none;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:12px;margin:0 0 12px}.editor.open{display:block!important}
-.service-row{display:grid;grid-template-columns:1fr auto;gap:10px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08)}.service-title{font-weight:560}.service-sub{color:var(--muted);font-size:.88rem;margin-top:5px;line-height:1.35}.due{color:var(--accent);font-weight:600;text-align:right;white-space:nowrap}
-.timeline-entry{display:grid;grid-template-columns:15px 1fr auto;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08)}.dot{width:12px;height:12px;border-radius:50%;background:var(--accent);margin-top:6px;animation:breathe 2.4s ease-in-out infinite;box-shadow:0 0 14px var(--accent)}@keyframes breathe{50%{transform:scale(1.28)}}.timeline-title{font-weight:560}.timeline-sub{color:var(--muted);font-size:.88rem;margin-top:4px}.timeline-date{color:var(--accent);font-weight:600;white-space:nowrap}
-.color-row,.button-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}.inline-save{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-top:6px}input[type=color]{width:46px;height:36px;padding:0;border:0;background:transparent}input[type=range]{accent-color:var(--accent)}.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:999;background:rgba(10,12,18,.9);border:1px solid var(--line);padding:10px 16px;border-radius:999px}
-.tabs{position:fixed;left:0;right:0;bottom:0;z-index:80;display:flex;gap:2px;justify-content:center;background:rgba(9,10,14,.72);border-top:1px solid rgba(255,255,255,.1);backdrop-filter:blur(20px);padding:7px 10px max(5px,calc(env(safe-area-inset-bottom) - 6px))}.tab{flex:1;max-width:190px;border:0;background:transparent;color:#969aa4;padding:6px 4px 4px;border-radius:16px}.tab .ico{display:block;font-size:1.45rem;line-height:1}.tab .txt{display:block;font-size:.75rem;margin-top:3px}.tab.active{color:var(--accent);background:rgba(255,255,255,.06);transform:scale(1.04) translateY(-1px)}
-.modal{position:fixed;inset:0;z-index:650;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.52);backdrop-filter:blur(18px)}.modal-card{width:min(620px,100%);padding:18px;max-height:88vh;overflow:auto}.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.modal-head h2{margin:0;font-size:1.55rem;font-weight:600}
-@media(max-width:720px){.form-grid{grid-template-columns:1fr 1fr}.span2,.full{grid-column:1/-1}.section-controls{grid-template-columns:104px auto}.service-row{grid-template-columns:1fr}.due{text-align:left}}
-@media(max-width:430px){body{padding-left:10px;padding-right:10px}.form-grid{grid-template-columns:1fr}.hero-title h1{font-size:1.75rem}.hero-img{height:145px}.section-head{grid-template-columns:1fr}.section-controls{grid-template-columns:1fr auto}.inline-save{grid-template-columns:1fr}.timeline-entry{grid-template-columns:15px 1fr}.timeline-date{grid-column:2}}
-
-/* v3.1 Porsche-ish car home + larger garage image */
+.car-wrap,.mod-wrap{position:relative;overflow:hidden;border-radius:22px}
+.delete-bg{
+  position:absolute;
+  inset:0 0 0 auto;
+  width:112px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,#5a1016,#c92c34);
+  color:white;
+  font-weight:650;
+  opacity:0;
+  transform:translateX(18px);
+  transition:.18s ease;
+  z-index:0;
+}
+.show-delete .delete-bg{opacity:1;transform:none}
 .car-card{
-  min-height:230px !important;
-  display:flex !important;
-  flex-direction:column !important;
-  justify-content:center !important;
-}
-
-.car-card img{
-  height:155px !important;
-  margin-bottom:14px !important;
-  object-fit:contain !important;
-}
-
-.home-hero{
-  padding:18px 16px 20px;
-  text-align:center;
-  min-height:520px;
+  position:relative;
+  z-index:1;
   display:flex;
   flex-direction:column;
-  justify-content:flex-start;
-}
-
-.home-hero .home-top{
-  text-align:left;
-  margin-bottom:8px;
-}
-
-.home-hero .home-top .small{
-  color:var(--muted);
-  font-size:.86rem;
-  margin-bottom:4px;
-}
-
-.home-hero .home-top h1{
-  margin:0;
-  font-size:2.05rem;
-  font-weight:620;
-  letter-spacing:-.045em;
-}
-
-.home-car-img{
-  width:100%;
-  height:245px;
-  object-fit:contain;
-  margin:10px auto 6px;
-  cursor:pointer;
-  display:block;
-}
-
-.home-model{
-  color:var(--accent);
-  font-size:.95rem;
-  margin:4px 0 12px;
-}
-
-.home-tags{
-  display:flex;
-  gap:8px;
   justify-content:center;
-  flex-wrap:wrap;
-  margin-bottom:14px;
+  width:100%;
+  min-height:230px;
+  padding:16px;
+  color:var(--text);
+  text-align:left;
+  transition:transform .22s ease;
 }
+.car-card.swiped,.mod-card.swiped{transform:translateX(-112px)}
+.car-card img{width:100%;height:155px;object-fit:contain;margin-bottom:14px}
+.car-card h2{margin:0;font-size:1.35rem;font-weight:600}
+.car-card p{margin:5px 0 0;color:var(--muted)}
+.add-card{
+  min-height:230px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  border:1px dashed rgba(255,255,255,.22);
+  cursor:pointer;
+}
+.add-card b{font-size:1.15rem}
+.add-card span{display:block;color:var(--muted);margin-top:6px}
 
-.home-quick-grid{
+/* Detail */
+.back-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.back-row h2{margin:0;color:var(--muted);font-size:1rem;font-weight:450}
+.home-hero{padding:18px 16px 20px;text-align:center;min-height:500px;display:flex;flex-direction:column;justify-content:flex-start}
+.home-top{text-align:left;margin-bottom:8px}
+.home-top .small{color:var(--muted);font-size:.86rem;margin-bottom:4px}
+.home-top h1{margin:0;font-size:2.05rem;font-weight:620;letter-spacing:-.045em}
+.home-car-img{width:100%;height:255px;object-fit:contain;margin:10px auto 6px;cursor:pointer;display:block}
+.home-model{color:var(--accent);font-size:.95rem;margin:4px 0 12px}
+.home-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
+.tag{border:1px solid var(--line);border-radius:12px;padding:7px 12px;background:rgba(255,255,255,.04)}
+.total-card{margin-top:10px;padding:14px 16px;border-radius:18px;background:rgba(8,10,15,.52);border:1px solid var(--line)}
+.total-row{display:grid;grid-template-columns:1fr auto;gap:16px;min-height:24px;align-items:center}
+.total-row span{color:#d9d9df}.total-row b{font-weight:450;text-align:right}
+.total-row.main span{color:var(--muted)}.total-row.main b{color:var(--accent);font-weight:600}
+.home-quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.home-quick-grid .btn{padding:12px 8px;border-radius:16px}
+
+/* Pages */
+.page{display:none;animation:fade .2s ease both}
+.page.active{display:block}
+@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
+.section{padding:16px;margin:14px 0}
+.section-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.09)}
+.section-head h2{margin:0;font-size:1.5rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.section-controls{display:grid;grid-template-columns:116px auto;gap:8px}
+.sort-select{height:40px;padding:8px;font-size:.82rem}
+
+/* Mods */
+.mod-card{
+  position:relative;
+  z-index:1;
   display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-  margin-top:10px;
+  grid-template-columns:82px minmax(0,1fr) auto 12px;
+  gap:10px;
+  align-items:center;
+  padding:15px 0;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  transition:transform .22s ease;
+  touch-action:pan-y;
+  cursor:pointer;
 }
+.thumb{width:82px;height:76px;border-radius:14px;object-fit:cover;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.11)}
+.mod-card h3{margin:0;font-size:1rem;font-weight:550;line-height:1.15}
+.sub{color:var(--muted);font-size:.82rem;margin-top:5px}
+.price{color:var(--accent);font-weight:600;white-space:nowrap}
+.chev{color:var(--muted)}
+.empty-cat{display:grid;grid-template-columns:82px 1fr;gap:12px;align-items:center;padding:18px 0;color:var(--muted);cursor:pointer}
+.empty-thumb{width:82px;height:76px;border:1px dashed rgba(255,255,255,.25);border-radius:14px;display:flex;align-items:center;justify-content:center}
+.editor{display:none;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:12px;margin:0 0 12px}
+.editor.open{display:block!important}
 
-.home-quick-grid .btn{
-  padding:12px 8px;
-  border-radius:16px;
-}
+/* Services / timeline */
+.service-row{display:grid;grid-template-columns:1fr auto;gap:10px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.service-title{font-weight:560}.service-sub{color:var(--muted);font-size:.88rem;margin-top:5px;line-height:1.35}
+.due{color:var(--accent);font-weight:600;text-align:right;white-space:nowrap}
+.timeline-entry{display:grid;grid-template-columns:15px 1fr auto;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--accent);margin-top:6px;animation:breathe 2.4s ease-in-out infinite;box-shadow:0 0 14px var(--accent)}
+@keyframes breathe{50%{transform:scale(1.28)}}
+.timeline-title{font-weight:560}.timeline-sub{color:var(--muted);font-size:.88rem;margin-top:4px}.timeline-date{color:var(--accent);font-weight:600;white-space:nowrap}
 
-#carApp .hero:not(.home-hero){
-  display:none !important;
-}
+/* Settings */
+.color-row,.button-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
+.inline-save{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-top:6px}
+input[type=color]{width:46px;height:36px;padding:0;border:0;background:transparent}
+input[type=range]{accent-color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:999;background:rgba(10,12,18,.9);border:1px solid var(--line);padding:10px 16px;border-radius:999px}
+
+/* Tabs */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:80;display:flex;gap:2px;justify-content:center;background:rgba(9,10,14,.72);border-top:1px solid rgba(255,255,255,.1);backdrop-filter:blur(20px);padding:7px 10px max(5px,calc(env(safe-area-inset-bottom) - 6px))}
+.tab{flex:1;max-width:190px;border:0;background:transparent;color:#969aa4;padding:6px 4px 4px;border-radius:16px}
+.tab .ico{display:block;font-size:1.45rem;line-height:1}.tab .txt{display:block;font-size:.75rem;margin-top:3px}
+.tab.active{color:var(--accent);background:rgba(255,255,255,.06);transform:scale(1.04) translateY(-1px)}
+
+.modal{position:fixed;inset:0;z-index:650;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.52);backdrop-filter:blur(18px)}
+.modal-card{width:min(620px,100%);padding:18px;max-height:88vh;overflow:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.modal-head h2{margin:0;font-size:1.55rem;font-weight:600}
 
 @media(max-width:720px){
-  .car-card img{
-    height:170px !important;
-  }
-
-  .home-hero{
-    min-height:500px;
-  }
-
-  .home-car-img{
-    height:255px;
-  }
-
-  .home-quick-grid{
-    grid-template-columns:1fr 1fr;
-  }
+  .form-grid{grid-template-columns:1fr 1fr}
+  .span2,.full{grid-column:1/-1}
+  .section-controls{grid-template-columns:104px auto}
+  .service-row{grid-template-columns:1fr}
+  .due{text-align:left}
+  .home-quick-grid{grid-template-columns:1fr 1fr}
 }
-
 @media(max-width:430px){
-  .car-card{
-    min-height:225px !important;
-  }
-
-  .car-card img{
-    height:155px !important;
-  }
-
-  .home-hero{
-    min-height:480px;
-    padding:16px 12px 18px;
-  }
-
-  .home-car-img{
-    height:250px;
-  }
-
-  .home-top h1{
-    font-size:1.8rem !important;
-  }
+  body{padding-left:10px;padding-right:10px}
+  .form-grid{grid-template-columns:1fr}
+  .home-car-img{height:250px}
+  .home-top h1{font-size:1.8rem}
+  .section-head{grid-template-columns:1fr}
+  .section-controls{grid-template-columns:1fr auto}
+  .inline-save{grid-template-columns:1fr}
+  .timeline-entry{grid-template-columns:15px 1fr}
+  .timeline-date{grid-column:2}
 }
-
 </style>
 </head>
 <body>
-<div id="authOverlay" class="auth-overlay hidden"><div class="auth-card glass"><h1>My Garage</h1><p>Sign in to sync your cars, mods, services, photos, and timeline across devices.</p><label>Email<input id="authEmail" type="email" placeholder="Email"></label><label style="margin-top:9px">Password<input id="authPassword" type="password" placeholder="Password"></label><div class="auth-actions"><button class="btn primary" onclick="signIn()">Log In</button><button class="btn" onclick="signUp()">Sign Up</button><button class="btn guest" onclick="guestMode()">Continue as Guest</button></div><p id="authStatus" class="status">Cloud sync ready.</p></div></div>
+<div id="authOverlay" class="auth-overlay hidden">
+  <div class="auth-card glass">
+    <h1>My Garage</h1>
+    <p>Sign in to sync your cars, mods, services, photos, and timeline across devices.</p>
+    <label>Email<input id="authEmail" type="email" placeholder="Email"></label>
+    <label style="margin-top:9px">Password<input id="authPassword" type="password" placeholder="Password"></label>
+    <div class="auth-actions">
+      <button class="btn primary" onclick="signIn()">Log In</button>
+      <button class="btn" onclick="signUp()">Sign Up</button>
+      <button class="btn guest" onclick="guestMode()">Continue as Guest</button>
+    </div>
+    <p id="authStatus" class="status">Cloud sync ready.</p>
+  </div>
+</div>
 
-<div id="carModal" class="modal hidden"><div class="modal-card glass"><div class="modal-head"><h2 id="modalTitle">Add Your Car</h2><button class="btn" onclick="closeCarModal()">Cancel</button></div><div class="form-grid"><label>Car Name<input id="modalName" placeholder="Car name"></label><label>Year<input id="modalYear" inputmode="numeric" placeholder="Year"></label><label>Make<input id="modalMake" placeholder="Make"></label><label>Model<input id="modalModel" placeholder="Model"></label><label>Chassis Code<input id="modalChassis" placeholder="Chassis code"></label><label>Engine<input id="modalEngine" placeholder="Engine"></label><label>Purchase Date<input id="modalPurchaseDate" type="date"></label><label>Purchase Mileage<input id="modalPurchaseMileage" inputmode="numeric" placeholder="Mileage"></label></div><div class="button-row" style="justify-content:flex-end;margin-top:14px"><button class="btn primary" onclick="saveCarFromModal()">Save Car</button></div></div></div>
+<div id="carModal" class="modal hidden">
+  <div class="modal-card glass">
+    <div class="modal-head"><h2 id="modalTitle">Add Your Car</h2><button class="btn" onclick="closeCarModal()">Cancel</button></div>
+    <div class="form-grid">
+      <label>Car Name<input id="modalName" placeholder="Car name"></label>
+      <label>Year<input id="modalYear" inputmode="numeric" placeholder="Year"></label>
+      <label>Make<input id="modalMake" placeholder="Make"></label>
+      <label>Model<input id="modalModel" placeholder="Model"></label>
+      <label>Chassis Code<input id="modalChassis" placeholder="Chassis code"></label>
+      <label>Engine<input id="modalEngine" placeholder="Engine"></label>
+      <label>Purchase Date<input id="modalPurchaseDate" type="date"></label>
+      <label>Purchase Mileage<input id="modalPurchaseMileage" inputmode="numeric" placeholder="Mileage"></label>
+    </div>
+    <div class="button-row" style="justify-content:flex-end;margin-top:14px"><button class="btn primary" onclick="saveCarFromModal()">Save Car</button></div>
+  </div>
+</div>
 
 <div class="app">
-<div id="garageHome"><div class="topbar"><div><h1>My Garage</h1><div class="status" id="cloudStatus">Local mode</div></div><button class="btn danger" onclick="signOut()">Log Out</button></div><div class="garage-grid" id="garageList"></div></div>
-<div id="carApp" class="hidden">
-<div class="back-row"><button class="btn" onclick="showGarage()">← My Garage</button><h2 id="activeCarLabel">Car Log</h2></div>
-<div id="homePage" class="page active">
-<section class="home-hero glass">
-  <div class="home-top">
-    <div class="small" id="homeUpdated">Car Log</div>
-    <h1 id="homeTitle">My Car</h1>
+  <div id="garageHome">
+    <div class="topbar"><div><h1>My Garage</h1><div class="status" id="cloudStatus">Local mode</div></div><button class="btn danger" onclick="signOut()">Log Out</button></div>
+    <div class="garage-grid" id="garageList"></div>
   </div>
-  <img id="heroImg" class="home-car-img" alt="car" onclick="pickHeroPhoto()">
-  <div class="home-model" id="carModelHero">Year Make Model</div>
-  <div class="home-tags"><span class="tag" id="chassisTag">N/A</span><span class="tag" id="engineTag">N/A</span></div>
-  <div class="total-card">
-    <div class="total-row main"><span>Total Spent</span><b id="totalSpent">$0.00</b></div>
-    <div class="total-row"><span>Mods</span><b id="modSpent">$0.00</b></div>
-    <div class="total-row"><span>Services</span><b id="serviceSpent">$0.00</b></div>
-    <div class="total-row"><span>Planned</span><b id="plannedSpent">$0.00</b></div>
+
+  <div id="carApp" class="hidden">
+    <div class="back-row"><button class="btn" onclick="showGarage()">← My Garage</button><h2 id="activeCarLabel">Car Log</h2></div>
+
+    <div id="homePage" class="page active">
+      <section class="home-hero glass">
+        <div class="home-top"><div class="small" id="homeUpdated">Car Log</div><h1 id="homeTitle">My Car</h1></div>
+        <img id="heroImg" class="home-car-img" alt="car" onclick="pickHeroPhoto()">
+        <div class="home-model" id="carModelHero">Year Make Model</div>
+        <div class="home-tags"><span class="tag" id="chassisTag">N/A</span><span class="tag" id="engineTag">N/A</span></div>
+        <div class="total-card">
+          <div class="total-row main"><span>Total Spent</span><b id="totalSpent">$0.00</b></div>
+          <div class="total-row"><span>Mods</span><b id="modSpent">$0.00</b></div>
+          <div class="total-row"><span>Services</span><b id="serviceSpent">$0.00</b></div>
+          <div class="total-row"><span>Planned</span><b id="plannedSpent">$0.00</b></div>
+        </div>
+        <div class="home-quick-grid">
+          <button class="btn" onclick="showPage('modsPage',document.querySelector('[data-tab=mods]'))">Mods</button>
+          <button class="btn" onclick="showPage('servicesPage',document.querySelector('[data-tab=services]'))">Services</button>
+          <button class="btn" onclick="showPage('timelinePage',document.querySelector('[data-tab=timeline]'))">Timeline</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="modsPage" class="page"></div>
+
+    <div id="servicesPage" class="page">
+      <section class="section glass">
+        <div class="section-head"><h2>Services</h2><button class="btn primary" onclick="addService()">＋ Add</button></div>
+        <div style="margin:12px 0"><label>Current Mileage<input id="currentMileage" type="number" oninput="activeCar().currentMileage=this.value;saveLocal();scheduleCloudSave();renderServices()"></label></div>
+        <div id="servicesList"></div>
+      </section>
+    </div>
+
+    <div id="overviewPage" class="page">
+      <section class="section glass">
+        <div class="section-head"><h2>Overview</h2></div>
+        <div class="garage-grid">
+          <div class="glass" style="padding:16px"><span class="status">Installed Mods</span><h2 id="installedMods">0</h2></div>
+          <div class="glass" style="padding:16px"><span class="status">Planned / Ordered</span><h2 id="plannedMods">0</h2></div>
+          <div class="glass" style="padding:16px"><span class="status">Service Alerts</span><h2 id="serviceAlerts">0</h2></div>
+        </div>
+      </section>
+    </div>
+
+    <div id="timelinePage" class="page">
+      <section class="section glass">
+        <div class="section-head"><h2>Timeline</h2></div>
+        <div id="ownedCard" class="glass" style="padding:14px;margin:12px 0"></div>
+        <div id="timelineList"></div>
+      </section>
+    </div>
+
+    <div id="settingsPage" class="page">
+      <section class="section glass">
+        <div class="section-head"><h2>Settings</h2></div>
+        <div class="form-grid">
+          <label>Car Name<input id="setName" placeholder="Car name"></label>
+          <label>Year<input id="setYear" inputmode="numeric" placeholder="Year"></label>
+          <label>Make<input id="setMake" placeholder="Make"></label>
+          <label>Model<input id="setModel" placeholder="Model"></label>
+          <label>Chassis Code<input id="setChassis" placeholder="Chassis code"></label>
+          <label>Engine<input id="setEngine" placeholder="Engine"></label>
+          <label>Purchase Date<input id="setPurchaseDate" type="date"></label>
+          <label>Purchase Mileage<input id="setPurchaseMileage" inputmode="numeric" placeholder="Mileage"></label>
+          <label class="span2">Accent Color<div class="inline-save"><div class="color-row"><input id="setAccent" type="color"><span>Theme color</span></div><button class="btn primary" onclick="saveCarInfo()">Save Car Info</button></div></label>
+          <label class="span2">Background Opacity<input id="setBgOpacity" type="range" min=".25" max="1" step=".01"></label>
+          <label class="span2">Background URL<input id="setBgUrl" placeholder="Direct image URL"></label>
+          <label class="full">Goals<textarea id="setGoals" placeholder="Goals / notes"></textarea></label>
+        </div>
+        <div class="button-row" style="margin-top:14px">
+          <button class="btn" onclick="pickBackgroundPhoto()">Background Photo</button>
+          <button class="btn" onclick="useHeroAsBackground()">Use Hero</button>
+          <button class="btn danger" onclick="clearBackground()">Reset BG</button>
+          <button class="btn danger" onclick="deleteActiveCar()">Delete Car</button>
+          <button class="btn" onclick="saveCarInfo();saveCloudNow()">Save Cloud</button>
+          <button class="btn" onclick="loadCloud()">Load Cloud</button>
+        </div>
+      </section>
+    </div>
   </div>
-  <div class="home-quick-grid">
-    <button class="btn" onclick="showPage('modsPage',document.querySelector('[data-tab=mods]'))">Mods</button>
-    <button class="btn" onclick="showPage('servicesPage',document.querySelector('[data-tab=services]'))">Services</button>
-    <button class="btn" onclick="showPage('timelinePage',document.querySelector('[data-tab=timeline]'))">Timeline</button>
-  </div>
-</section>
 </div>
-<div id="modsPage" class="page"></div>
-<div id="servicesPage" class="page"><section class="section glass"><div class="section-head"><h2>Services</h2><button class="btn primary" onclick="addService()">＋ Add</button></div><div style="margin:12px 0"><label>Current Mileage<input id="currentMileage" type="number" oninput="activeCar().currentMileage=this.value;saveLocal();scheduleCloudSave();renderServices()"></label></div><div id="servicesList"></div></section></div>
-<div id="overviewPage" class="page"><section class="section glass"><div class="section-head"><h2>Overview</h2></div><div class="garage-grid"><div class="glass" style="padding:16px"><span class="status">Installed Mods</span><h2 id="installedMods">0</h2></div><div class="glass" style="padding:16px"><span class="status">Planned / Ordered</span><h2 id="plannedMods">0</h2></div><div class="glass" style="padding:16px"><span class="status">Service Alerts</span><h2 id="serviceAlerts">0</h2></div></div></section></div>
-<div id="timelinePage" class="page"><section class="section glass"><div class="section-head"><h2>Timeline</h2></div><div id="ownedCard" class="glass" style="padding:14px;margin:12px 0"></div><div id="timelineList"></div></section></div>
-<div id="settingsPage" class="page"><section class="section glass"><div class="section-head"><h2>Settings</h2></div><div class="form-grid"><label>Car Name<input id="setName" placeholder="Car name"></label><label>Year<input id="setYear" inputmode="numeric" placeholder="Year"></label><label>Make<input id="setMake" placeholder="Make"></label><label>Model<input id="setModel" placeholder="Model"></label><label>Chassis Code<input id="setChassis" placeholder="Chassis code"></label><label>Engine<input id="setEngine" placeholder="Engine"></label><label>Purchase Date<input id="setPurchaseDate" type="date"></label><label>Purchase Mileage<input id="setPurchaseMileage" inputmode="numeric" placeholder="Mileage"></label><label class="span2">Accent Color<div class="inline-save"><div class="color-row"><input id="setAccent" type="color"><span>Theme color</span></div><button class="btn primary" onclick="saveCarInfo()">Save Car Info</button></div></label><label class="span2">Background Opacity<input id="setBgOpacity" type="range" min=".25" max="1" step=".01"></label><label class="span2">Background URL<input id="setBgUrl" placeholder="Direct image URL"></label><label class="full">Goals<textarea id="setGoals" placeholder="Goals / notes"></textarea></label></div><div class="button-row" style="margin-top:14px"><button class="btn" onclick="pickBackgroundPhoto()">Background Photo</button><button class="btn" onclick="useHeroAsBackground()">Use Hero</button><button class="btn danger" onclick="clearBackground()">Reset BG</button><button class="btn danger" onclick="deleteActiveCar()">Delete Car</button><button class="btn" onclick="saveCarInfo();saveCloudNow()">Save Cloud</button><button class="btn" onclick="loadCloud()">Load Cloud</button></div></section></div>
-</div></div>
-<nav id="tabs" class="tabs hidden"><button class="tab active" data-tab="home" onclick="showPage('homePage',this)"><span class="ico">🏠</span><span class="txt">Home</span></button><button class="tab" data-tab="mods" onclick="showPage('modsPage',this)"><span class="ico">🔧</span><span class="txt">Mods</span></button><button class="tab" data-tab="services" onclick="showPage('servicesPage',this)"><span class="ico">🛠️</span><span class="txt">Services</span></button><button class="tab" data-tab="timeline" onclick="showPage('timelinePage',this)"><span class="ico">▣</span><span class="txt">Timeline</span></button><button class="tab" data-tab="settings" onclick="showPage('settingsPage',this)"><span class="ico">⚙️</span><span class="txt">Settings</span></button></nav>
+
+<nav id="tabs" class="tabs hidden">
+  <button class="tab active" data-tab="home" onclick="showPage('homePage',this)"><span class="ico">🏠</span><span class="txt">Home</span></button>
+  <button class="tab" data-tab="mods" onclick="showPage('modsPage',this)"><span class="ico">🔧</span><span class="txt">Mods</span></button>
+  <button class="tab" data-tab="services" onclick="showPage('servicesPage',this)"><span class="ico">🛠️</span><span class="txt">Services</span></button>
+  <button class="tab" data-tab="timeline" onclick="showPage('timelinePage',this)"><span class="ico">▣</span><span class="txt">Timeline</span></button>
+  <button class="tab" data-tab="settings" onclick="showPage('settingsPage',this)"><span class="ico">⚙️</span><span class="txt">Settings</span></button>
+</nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -220,6 +381,7 @@ function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 function money(v){const n=parseFloat(v);return isNaN(n)?"$0.00":n.toLocaleString(undefined,{style:"currency",currency:"USD"})}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function toast(msg){const old=document.querySelector(".toast");if(old)old.remove();const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),1300)}
+
 function blankCar(){return {id:uid(),name:"New Car",year:"",make:"",model:"",chassis:"N/A",engine:"N/A",purchaseDate:"",purchaseMileage:"",currentMileage:"",goals:"",accent:"#ff3b3b",backgroundImage:"",backgroundOpacity:".65",carImage:"",mods:[],services:[]}}
 function splitVehicleText(text){const p=String(text||"").trim().split(/\s+/).filter(Boolean);const out={year:"",make:"",model:""};if(/^\d{4}$/.test(p[0]||""))out.year=p.shift();if(p.length){out.make=p.shift()||"";out.model=p.join(" ")}return out}
 function normalizeCar(c={}){const sp=splitVehicleText(c.carModel||"");return {id:c.id||uid(),name:c.name||c.carName||"New Car",year:c.year||c.carYear||sp.year||"",make:c.make||c.carMake||sp.make||"",model:c.model||c.carModelName||sp.model||"",chassis:c.chassis||c.chassisCode||"N/A",engine:c.engine||c.engineCode||"N/A",purchaseDate:c.purchaseDate||"",purchaseMileage:c.purchaseMileage||"",currentMileage:c.currentMileage||"",goals:c.goals||"",accent:c.accent||c.accentColor||"#ff3b3b",backgroundImage:c.backgroundImage||"",backgroundOpacity:c.backgroundOpacity||".65",carImage:c.carImage||"",mods:Array.isArray(c.mods)?c.mods.map(m=>({id:m.id||uid(),category:m.category||"Cosmetics",name:m.name||"New Item",brand:m.brand||"",status:m.status||"Planned",price:m.price||"",date:m.date||"",image:m.image||"",notes:m.notes||""})):[],services:Array.isArray(c.services)?c.services.map(s=>({id:s.id||uid(),name:s.name||"Service",date:s.date||"",mileage:s.mileage||"",intervalMiles:s.intervalMiles||"",intervalMonths:s.intervalMonths||"",cost:s.cost||"",notes:s.notes||""})):[]}}
@@ -229,13 +391,14 @@ function saveLocal(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
 function save(){saveLocal();scheduleCloudSave()}
 function loadLocal(){try{state=normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY)||"null"))}catch(e){state={cars:[],activeCarId:null}}}
 
-async function initCloud(){cloud=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const s=await cloud.auth.getSession();user=s.data.session?.user||null;cloud.auth.onAuthStateChange(async(e,session)=>{user=session?.user||null;if(user){hideAuth();await loadCloud(true)}else if(!guest)showAuth()});if(user){hideAuth();await loadCloud(true)}else showAuth()}
-function showAuth(){authOverlay.classList.remove("hidden")}function hideAuth(){authOverlay.classList.add("hidden")}
+async function initCloud(){try{cloud=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const s=await cloud.auth.getSession();user=s.data.session?.user||null;cloud.auth.onAuthStateChange(async(e,session)=>{user=session?.user||null;if(user){hideAuth();await loadCloud(true)}else if(!guest)showAuth()});if(user){hideAuth();await loadCloud(true)}else showAuth()}catch(e){console.error(e);showAuth();setStatus("Cloud unavailable • local mode")}}
+function showAuth(){authOverlay.classList.remove("hidden")}
+function hideAuth(){authOverlay.classList.add("hidden")}
 function setStatus(t){cloudStatus.textContent=t;authStatus.textContent=t}
 async function signUp(){const email=authEmail.value.trim(),password=authPassword.value;if(!email||password.length<6)return alert("Use email + 6 character password.");const r=await cloud.auth.signUp({email,password});if(r.error)return alert(r.error.message);if(r.data.session){user=r.data.user;hideAuth();await saveCloudNow(true)}else setStatus("Check email, then log in.")}
 async function signIn(){const email=authEmail.value.trim(),password=authPassword.value;const r=await cloud.auth.signInWithPassword({email,password});if(r.error)return alert(r.error.message);user=r.data.user;hideAuth();await loadCloud(true)}
 function guestMode(){guest=true;hideAuth();setStatus("Guest mode • saved on this device");render()}
-async function signOut(){guest=false;if(cloud)await cloud.auth.signOut();user=null;showAuth()}
+async function signOut(){guest=false;if(cloud)await cloud.auth.signOut();user=null;state.activeCarId=null;showAuth();render()}
 function scheduleCloudSave(){if(!user||guest)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>saveCloudNow(true),900)}
 async function saveCloudNow(silent=false){if(!user){if(!silent)alert("Log in first.");return}const r=await cloud.from("garage_data").upsert({user_id:user.id,data:state,updated_at:new Date().toISOString()},{onConflict:"user_id"});if(r.error){console.error(r.error);if(!silent)alert(r.error.message);setStatus("Cloud save failed. Local saved.");return}setStatus("Cloud saved • "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}))}
 async function loadCloud(auto=false){if(!user){if(!auto)alert("Log in first.");return}const r=await cloud.from("garage_data").select("data,updated_at").eq("user_id",user.id).maybeSingle();if(r.error){console.error(r.error);setStatus("Cloud load failed. Local mode.");return}if(r.data?.data){state=normalizeState(r.data.data);saveLocal();render();setStatus("Cloud loaded • "+new Date(r.data.updated_at).toLocaleString())}else{saveLocal();await saveCloudNow(true);render()}}
@@ -250,14 +413,14 @@ function closeCarModal(){carModal.classList.add("hidden")}
 function saveCarFromModal(){let c=state.cars.find(x=>x.id===carModal.dataset.editId);if(!c){c=blankCar();state.cars.push(c)}c.name=modalName.value.trim()||"New Car";c.year=modalYear.value.trim();c.make=modalMake.value.trim();c.model=modalModel.value.trim();c.chassis=modalChassis.value.trim()||"N/A";c.engine=modalEngine.value.trim()||"N/A";c.purchaseDate=modalPurchaseDate.value;c.purchaseMileage=modalPurchaseMileage.value.trim();closeCarModal();state.activeCarId=c.id;save();showCarApp()}
 function deleteCar(id){const c=state.cars.find(x=>x.id===id);if(!c||!confirm("Delete "+(c.name||"this car")+"?"))return;state.cars=state.cars.filter(x=>x.id!==id);state.activeCarId=null;save();showGarage()}
 
-function renderHero(){const c=activeCar();if(!c)return;document.documentElement.style.setProperty("--accent",c.accent||"#ff3b3b");document.documentElement.style.setProperty("--custom-bg",c.backgroundImage?`url("${c.backgroundImage}")`:DEFAULT_BG);const model=[c.year,c.make,c.model].filter(Boolean).join(" ")||"Year Make Model";homeTitle.textContent="My "+(c.name||"Car");homeUpdated.textContent="Last updated • "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});carModelHero.textContent=model;chassisTag.textContent=c.chassis||"N/A";engineTag.textContent=c.engine||"N/A";heroImg.src=c.carImage||fallbackImg;activeCarLabel.textContent=c.name||"Car Log"}")`:DEFAULT_BG);carNameHero.textContent=c.name||"Car";carModelHero.textContent=[c.year,c.make,c.model].filter(Boolean).join(" ")||"Year Make Model";chassisTag.textContent=c.chassis||"N/A";engineTag.textContent=c.engine||"N/A";heroImg.src=c.carImage||fallbackImg;activeCarLabel.textContent=c.name||"Car Log"}
+function renderHero(){const c=activeCar();if(!c)return;document.documentElement.style.setProperty("--accent",c.accent||"#ff3b3b");document.documentElement.style.setProperty("--custom-bg",c.backgroundImage?`url("${c.backgroundImage}")`:DEFAULT_BG);homeTitle.textContent="My "+(c.name||"Car");homeUpdated.textContent="Last updated • "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});carModelHero.textContent=[c.year,c.make,c.model].filter(Boolean).join(" ")||"Year Make Model";chassisTag.textContent=c.chassis||"N/A";engineTag.textContent=c.engine||"N/A";heroImg.src=c.carImage||fallbackImg;activeCarLabel.textContent=c.name||"Car Log"}
 function renderTotals(){const c=activeCar();if(!c)return;const paid=c.mods.filter(m=>m.status!=="Planned").reduce((a,m)=>a+(parseFloat(m.price)||0),0);const planned=c.mods.filter(m=>m.status==="Planned").reduce((a,m)=>a+(parseFloat(m.price)||0),0);const svc=c.services.reduce((a,s)=>a+(parseFloat(s.cost)||0),0);totalSpent.textContent=money(paid+svc);modSpent.textContent=money(paid);plannedSpent.textContent=money(planned);serviceSpent.textContent=money(svc);installedMods.textContent=c.mods.filter(m=>m.status==="Installed").length;plannedMods.textContent=c.mods.filter(m=>m.status==="Planned"||m.status==="Ordered").length;serviceAlerts.textContent=c.services.filter(s=>dueInfo(s).cls!=="good").length}
 
 function renderMods(){const c=activeCar();if(!c)return;modsPage.innerHTML=BASE_CATS.map(cat=>{let items=c.mods.filter(m=>(m.category||cat)===cat);const sort=sortPrefs[cat]||"";if(sort==="priceHigh")items=[...items].sort((a,b)=>(parseFloat(b.price)||0)-(parseFloat(a.price)||0));if(sort==="priceLow")items=[...items].sort((a,b)=>(parseFloat(a.price)||0)-(parseFloat(b.price)||0));if(sort==="dateDesc")items=[...items].sort((a,b)=>(b.date||"").localeCompare(a.date||""));if(sort==="dateAsc")items=[...items].sort((a,b)=>(a.date||"").localeCompare(b.date||""));return `<section class="section glass"><div class="section-head"><h2>${cat}</h2><div class="section-controls"><select class="sort-select" onchange="sortPrefs['${cat}']=this.value;renderMods()"><option value="">Sort By</option><option value="priceHigh" ${sort==="priceHigh"?"selected":""}>Price High → Low</option><option value="priceLow" ${sort==="priceLow"?"selected":""}>Price Low → High</option><option value="dateDesc" ${sort==="dateDesc"?"selected":""}>Date ↓</option><option value="dateAsc" ${sort==="dateAsc"?"selected":""}>Date ↑</option></select><button class="btn primary" onclick="addMod('${cat}')">＋ Add Item</button></div></div>${items.length?items.map(modHTML).join(""):`<div class="empty-cat" onclick="addMod('${cat}')"><div class="empty-thumb">N/A</div><div><b>No items yet</b><div class="sub">Tap to add first item</div></div></div>`}</section>`}).join("");initSwipe(".mod-wrap",".mod-card")}
-function modHTML(m){return `<div class="mod-wrap" data-id="${m.id}"><div class="delete-bg" onclick="deleteMod('${m.id}')">Delete</div><div class="mod-card" onclick="toggleEditor('ed-${m.id}')"><img class="thumb" src="${esc(m.image||fallbackImg)}" onclick="event.stopPropagation();pickModPhoto('${m.id}')" onerror="this.src=fallbackImg"><div><h3>${esc(m.name)}</h3><div class="sub">${esc(m.brand||m.status)}</div></div><div class="price">${money(m.price)}</div><div class="chev">›</div></div></div><div class="editor" id="ed-${m.id}"><div class="form-grid"><label>Category<select onchange="setMod('${m.id}','category',this.value);renderMods()">${BASE_CATS.map(c=>`<option value="${c}" ${m.category===c?"selected":""}>${c}</option>`).join("")}</select></label><label class="span2">Name<input value="${esc(m.name)}" onblur="renderMods()" oninput="setMod('${m.id}','name',this.value)"></label><label>Price<input type="number" value="${esc(m.price)}" oninput="setMod('${m.id}','price',this.value);renderTotals()"></label><label>Brand<input value="${esc(m.brand)}" onblur="renderMods()" oninput="setMod('${m.id}','brand',this.value)"></label><label>Status<select onchange="setMod('${m.id}','status',this.value);renderTotals()">${["Installed","Ordered","Planned"].map(s=>`<option ${m.status===s?"selected":""}>${s}</option>`).join("")}</select></label><label>Date<input type="date" value="${esc(m.date)}" oninput="setMod('${m.id}','date',this.value);renderTimeline()"></label><label class="full">Notes<textarea oninput="setMod('${m.id}','notes',this.value)">${esc(m.notes)}</textarea></label></div><div class="button-row"><button class="btn" onclick="pickModPhoto('${m.id}')">Photo</button><button class="btn danger" onclick="deleteMod('${m.id}')">Delete</button></div></div>`}
+function modHTML(m){return `<div class="mod-wrap" data-id="${m.id}"><div class="delete-bg" onclick="deleteMod('${m.id}')">Delete</div><div class="mod-card" onclick="toggleEditor('ed-${m.id}')"><img class="thumb" src="${esc(m.image||fallbackImg)}" onclick="event.stopPropagation();pickModPhoto('${m.id}')" onerror="this.src=fallbackImg"><div><h3>${esc(m.name)}</h3><div class="sub">${esc(m.brand||m.status)}</div></div><div class="price">${money(m.price)}</div><div class="chev">›</div></div></div><div class="editor" id="ed-${m.id}"><div class="form-grid"><label>Category<select onchange="setMod('${m.id}','category',this.value);renderMods()">${BASE_CATS.map(c=>`<option value="${c}" ${m.category===c?"selected":""}>${c}</option>`).join("")}</select></label><label class="span2">Name<input value="${esc(m.name)}" oninput="setMod('${m.id}','name',this.value)" onblur="renderMods()"></label><label>Price<input type="number" value="${esc(m.price)}" oninput="setMod('${m.id}','price',this.value);renderTotals()"></label><label>Brand<input value="${esc(m.brand)}" oninput="setMod('${m.id}','brand',this.value)" onblur="renderMods()"></label><label>Status<select onchange="setMod('${m.id}','status',this.value);renderTotals()">${["Installed","Ordered","Planned"].map(s=>`<option ${m.status===s?"selected":""}>${s}</option>`).join("")}</select></label><label>Date<input type="date" value="${esc(m.date)}" oninput="setMod('${m.id}','date',this.value);renderTimeline()"></label><label class="full">Notes<textarea oninput="setMod('${m.id}','notes',this.value)">${esc(m.notes)}</textarea></label></div><div class="button-row"><button class="btn" onclick="pickModPhoto('${m.id}')">Photo</button><button class="btn danger" onclick="deleteMod('${m.id}')">Delete</button></div></div>`}
 function addMod(cat){activeCar().mods.push({id:uid(),category:cat,name:"New Item",brand:"",status:"Planned",price:"",date:"",image:"",notes:""});save();renderMods();renderTotals()}
 function deleteMod(id){activeCar().mods=activeCar().mods.filter(m=>m.id!==id);save();renderMods();renderTotals();renderTimeline()}
-function setMod(id,k,v){const m=activeCar().mods.find(x=>x.id===id);if(!m)return;m[k]=v;save();if(k==="price"||k==="status")renderTotals();if(k==="date")renderTimeline()}}
+function setMod(id,k,v){const m=activeCar().mods.find(x=>x.id===id);if(m){m[k]=v;save()}}
 function toggleEditor(id){document.getElementById(id)?.classList.toggle("open")}
 
 function addService(){activeCar().services.push({id:uid(),name:"New Service",date:"",mileage:"",intervalMiles:"",intervalMonths:"",cost:"",notes:""});save();renderServices();renderTotals()}
@@ -282,7 +445,9 @@ function useHeroAsBackground(){if(!activeCar().carImage)return alert("Add a hero
 function clearBackground(){activeCar().backgroundImage="";save();renderHero()}
 function deleteActiveCar(){const c=activeCar();if(c)deleteCar(c.id)}
 
-loadLocal();render();initCloud();
+loadLocal();
+render();
+initCloud();
 </script>
 </body>
 </html>
