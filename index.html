@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Garage</title>
+<title>My Garage</title>
 <style>
 :root{
   --accent:#ff3b3b;
@@ -204,7 +204,7 @@ input[type=range]{accent-color:var(--accent)}
 <body>
 <div id="authOverlay" class="auth-overlay hidden">
   <div class="auth-card glass">
-    <h1>Garage</h1>
+    <h1>My Garage</h1>
     <p>Sign in to sync your cars, mods, services, photos, and timeline across your devices.</p>
     <label>Email<input id="authEmail" type="email" placeholder="you@email.com"></label>
     <label style="margin-top:9px">Password<input id="authPassword" type="password" placeholder="6+ characters"></label>
@@ -344,11 +344,85 @@ function blankCar(){
     mods:[],services:[]
   };
 }
-function activeCar(){return state.cars.find(c=>c.id===state.activeCarId) || state.cars[0] || null}
+
+function normalizeCar(c){
+  return {
+    id:c.id || uid(),
+    name:c.name || c.carName || "New Car",
+    year:c.year || c.carYear || "",
+    make:c.make || c.carMake || "",
+    model:c.model || c.carModelName || "",
+    chassis:c.chassis || c.chassisCode || "N/A",
+    engine:c.engine || c.engineCode || "N/A",
+    purchaseDate:c.purchaseDate || "",
+    purchaseMileage:c.purchaseMileage || "",
+    currentMileage:c.currentMileage || "",
+    goals:c.goals || "",
+    accent:c.accent || c.accentColor || "#ff3b3b",
+    backgroundImage:c.backgroundImage || "",
+    backgroundOpacity:c.backgroundOpacity || ".65",
+    carImage:c.carImage || "",
+    mods:Array.isArray(c.mods) ? c.mods.map(m=>({id:m.id||uid(),...m})) : [],
+    services:Array.isArray(c.services) ? c.services.map(s=>({id:s.id||uid(),...s})) : []
+  };
+}
+
+function normalizeState(raw){
+  if(!raw || typeof raw !== "object"){
+    return {cars:[],activeCarId:null};
+  }
+
+  // New multi-car format
+  if(Array.isArray(raw.cars)){
+    return {
+      cars:raw.cars.map(normalizeCar),
+      activeCarId:null
+    };
+  }
+
+  // Old single-car format from the previous Clifford app
+  if(Array.isArray(raw.mods) || Array.isArray(raw.services) || raw.carName || raw.carModel){
+    const oldCar = normalizeCar({
+      id:raw.id || uid(),
+      name:raw.carName || raw.name || "Imported Car",
+      year:raw.carYear || "",
+      make:raw.carMake || "",
+      model:raw.carModelName || raw.carModel || "",
+      chassis:raw.chassisCode || "N/A",
+      engine:raw.engineCode || "N/A",
+      purchaseDate:raw.purchaseDate || "",
+      purchaseMileage:raw.purchaseMileage || "",
+      currentMileage:raw.currentMileage || "",
+      goals:raw.goals || "",
+      accent:raw.accentColor || "#ff3b3b",
+      backgroundImage:raw.backgroundImage || "",
+      backgroundOpacity:raw.backgroundOpacity || ".65",
+      carImage:raw.carImage || "",
+      mods:Array.isArray(raw.mods) ? raw.mods : [],
+      services:Array.isArray(raw.services) ? raw.services : []
+    });
+    return {cars:[oldCar],activeCarId:null};
+  }
+
+  return {cars:[],activeCarId:null};
+}
+
+function activeCar(){
+  if(!state || !Array.isArray(state.cars)) state=normalizeState(state);
+  return state.cars.find(c=>c.id===state.activeCarId) || null;
+}
 function money(v){const n=parseFloat(v);return isNaN(n)?"$0.00":n.toLocaleString(undefined,{style:"currency",currency:"USD"})}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function save(){localStorage.setItem(KEY,JSON.stringify(state));scheduleCloudSave()}
-function load(){try{const s=localStorage.getItem(KEY);if(s)state=JSON.parse(s)}catch(e){} if(!Array.isArray(state.cars))state.cars=[]}
+function load(){
+  try{
+    const s=localStorage.getItem(KEY);
+    if(s) state=normalizeState(JSON.parse(s));
+    else state=normalizeState(state);
+  }catch(e){
+    state={cars:[],activeCarId:null};
+  }
+}
 
 function setStatus(t){const c=document.getElementById("cloudStatus"),a=document.getElementById("authStatus"); if(c)c.textContent=t; if(a)a.textContent=t}
 async function initCloud(){
@@ -382,6 +456,7 @@ async function cloudSaveNow(silent=false){
   if(!cloudUser){if(!silent)alert("Log in first.");return}
   try{
     if(!silent)setStatus("Saving...");
+    state=normalizeState(state);
     const {error}=await supabaseClient.from("garage_data").upsert({user_id:cloudUser.id,data:state,updated_at:new Date().toISOString()},{onConflict:"user_id"});
     if(error)throw error;
     setStatus(`Cloud saved • ${new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}`);
@@ -393,23 +468,58 @@ async function cloudLoad(auto=false){
     setStatus("Loading cloud...");
     const {data:row,error}=await supabaseClient.from("garage_data").select("data,updated_at").eq("user_id",cloudUser.id).maybeSingle();
     if(error)throw error;
-    if(row?.data){isCloudLoading=true;state=row.data;localStorage.setItem(KEY,JSON.stringify(state));isCloudLoading=false;render();setStatus(`Cloud loaded • ${new Date(row.updated_at).toLocaleString()}`)}
+    if(row?.data){
+      isCloudLoading=true;
+      state=normalizeState(row.data);
+      localStorage.setItem(KEY,JSON.stringify(state));
+      isCloudLoading=false;
+      render();
+      setStatus(`Cloud loaded • ${new Date(row.updated_at).toLocaleString()}`);
+      // If older cloud format was loaded, quietly save the upgraded multi-car shape.
+      setTimeout(()=>cloudSaveNow(true),500);
+    }
     else{save();await cloudSaveNow(true);render()}
   }catch(e){isCloudLoading=false;console.error(e);setStatus("Cloud load failed. Local mode.");if(!auto)alert(e.message)}
 }
 
-function render(){renderGarage();const c=activeCar();if(c){renderHero();renderMods();renderServices();renderTotals();renderTimeline();renderSettings()}}
+function render(){
+  state=normalizeState(state);
+  renderGarage();
+  const c=activeCar();
+  if(c){
+    renderHero();renderMods();renderServices();renderTotals();renderTimeline();renderSettings();
+  }else{
+    carApp.classList.add("hidden");
+    bottomTabs.classList.add("hidden");
+    garageHome.classList.remove("hidden");
+  }
+}
 function renderGarage(){
-  garageHome.classList.toggle("hidden",!!activeCar()&&document.getElementById("carApp").classList.contains("hidden")===false);
+  if(!state || !Array.isArray(state.cars)) state=normalizeState(state);
   garageList.innerHTML=state.cars.map(c=>`<div class="car-tile glass" onclick="openCar('${c.id}')">
     <img src="${esc(c.carImage||fallbackImg)}" onerror="this.src=fallbackImg">
     <h2>${esc(c.name||"Unnamed Car")}</h2>
     <p>${esc([c.year,c.make,c.model].filter(Boolean).join(" ")||"No vehicle info yet")}</p>
   </div>`).join("") + `<div class="add-tile glass" onclick="addCar()"><div><b>＋ Add Your Car</b><span>${state.cars.length?"Add Another":"Start your garage"}</span></div></div>`;
 }
-function addCar(){const c=blankCar();state.cars.push(c);state.activeCarId=c.id;save();openCar(c.id)}
+function addCar(){
+  if(!state || !Array.isArray(state.cars)) state=normalizeState(state);
+  const c=blankCar();
+  state.cars.push(c);
+  state.activeCarId=c.id;
+  localStorage.setItem(KEY,JSON.stringify(state));
+  scheduleCloudSave();
+  openCar(c.id);
+}
 function openCar(id){state.activeCarId=id;garageHome.classList.add("hidden");carApp.classList.remove("hidden");bottomTabs.classList.remove("hidden");render()}
-function showGarageHome(){state.activeCarId=null;carApp.classList.add("hidden");bottomTabs.classList.add("hidden");garageHome.classList.remove("hidden");save();renderGarage()}
+function showGarageHome(){
+  state.activeCarId=null;
+  carApp.classList.add("hidden");
+  bottomTabs.classList.add("hidden");
+  garageHome.classList.remove("hidden");
+  save();
+  renderGarage();
+}
 function deleteActiveCar(){const c=activeCar();if(!c||!confirm("Delete this car and all its data?"))return;state.cars=state.cars.filter(x=>x.id!==c.id);state.activeCarId=null;save();showGarageHome()}
 
 function renderHero(){
