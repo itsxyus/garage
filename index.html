@@ -486,6 +486,29 @@ input[type=range]{accent-color:var(--accent)}
   opacity:1 !important;
 }
 
+
+/* v2.0 settings save repair */
+.mini-toast{
+  position:fixed;
+  left:50%;
+  bottom:calc(86px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);
+  z-index:999;
+  background:rgba(10,12,18,.88);
+  border:1px solid rgba(255,255,255,.14);
+  color:var(--text);
+  padding:10px 16px;
+  border-radius:999px;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  box-shadow:0 12px 32px rgba(0,0,0,.35);
+  font-weight:500;
+}
+
+#settingsPage input[type="color"]{
+  cursor:pointer;
+}
+
 </style>
 </head>
 <body>
@@ -597,17 +620,17 @@ input[type=range]{accent-color:var(--accent)}
       <section class="section glass">
         <div class="section-head"><h2>Settings</h2></div>
         <div class="form-grid">
-          <label>Car Name<input id="setCarName" oninput="activeCar().name=this.value;save();render()"></label>
-          <label>Year<input id="setYear" inputmode="numeric" oninput="activeCar().year=this.value;save();render()"></label>
-          <label>Make<input id="setMake" oninput="activeCar().make=this.value;save();render()"></label>
-          <label>Model<input id="setModel" oninput="activeCar().model=this.value;save();render()"></label>
-          <label>Chassis Code<input id="setChassis" oninput="activeCar().chassis=this.value;save();render()"></label>
-          <label>Engine<input id="setEngine" oninput="activeCar().engine=this.value;save();render()"></label>
-          <label>Purchase Date<input id="setPurchaseDate" type="date" onchange="activeCar().purchaseDate=this.value;save();renderTimeline()" oninput="activeCar().purchaseDate=this.value;save();renderTimeline()"></label>
-          <label>Purchase Mileage<input id="setPurchaseMileage" inputmode="numeric" oninput="activeCar().purchaseMileage=this.value;save();renderTimeline()"></label>
-          <label class="span2">Accent Color<div class="settings-inline-row"><div class="color-row"><input id="setAccent" type="color" oninput="activeCar().accent=this.value;save();render()"><span>Live theme</span></div><button class="btn red" type="button" onclick="saveCarInfo()">Save Car Info</button></div></label>
-          <label class="span2">Background Opacity<input id="setBgOpacity" type="range" min=".25" max="1" step=".01" oninput="activeCar().backgroundOpacity=this.value;save();renderHero()"></label>
-          <label class="span2">Background URL<input id="setBgUrl" oninput="activeCar().backgroundImage=this.value;save();renderHero()" placeholder="optional direct image link"></label>
+          <label>Car Name<input id="setCarName" oninput="activeCar().name=this.value;renderHero()"></label>
+          <label>Year<input id="setYear" inputmode="numeric" oninput="activeCar().year=this.value;renderHero()"></label>
+          <label>Make<input id="setMake" oninput="activeCar().make=this.value;renderHero()"></label>
+          <label>Model<input id="setModel" oninput="activeCar().model=this.value;renderHero()"></label>
+          <label>Chassis Code<input id="setChassis" oninput="activeCar().chassis=this.value;renderHero()"></label>
+          <label>Engine<input id="setEngine" oninput="activeCar().engine=this.value;renderHero()"></label>
+          <label>Purchase Date<input id="setPurchaseDate" type="date" onchange="activeCar().purchaseDate=this.value;renderTimeline()" oninput="activeCar().purchaseDate=this.value;renderTimeline()"></label>
+          <label>Purchase Mileage<input id="setPurchaseMileage" inputmode="numeric" oninput="activeCar().purchaseMileage=this.value;renderTimeline()"></label>
+          <label class="span2">Accent Color<div class="settings-inline-row"><div class="color-row"><input id="setAccent" type="color" oninput="activeCar().accent=this.value;renderHero()"><span>Live theme</span></div><button class="btn red" type="button" onclick="saveCarInfo()">Save Car Info</button></div></label>
+          <label class="span2">Background Opacity<input id="setBgOpacity" type="range" min=".25" max="1" step=".01" oninput="activeCar().backgroundOpacity=this.value;renderHero()"></label>
+          <label class="span2">Background URL<input id="setBgUrl" oninput="activeCar().backgroundImage=this.value;renderHero()" placeholder="optional direct image link"></label>
           <label class="span2">Background Photo
             <div class="bg-control-row">
               <button class="btn" type="button" onclick="document.getElementById('bgPhotoInput').click()">Choose Photo</button>
@@ -616,11 +639,11 @@ input[type=range]{accent-color:var(--accent)}
             </div>
             <input id="bgPhotoInput" class="real-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/*" onchange="handleBackgroundFile(event)">
           </label>
-          <label class="full">Goals<textarea id="setGoals" oninput="activeCar().goals=this.value;save()"></textarea></label>
+          <label class="full">Goals<textarea id="setGoals" oninput="activeCar().goals=this.value"></textarea></label>
         </div>
         <div class="bg-control-row" style="margin-top:14px">
           <button class="btn danger" onclick="deleteActiveCar()">Delete Car</button>
-          <button class="btn" onclick="cloudSaveNow()">Save Cloud</button>
+          <button class="btn" onclick="saveCarInfo(); cloudSaveNow()">Save Cloud</button>
           <button class="btn" onclick="cloudLoad()">Load Cloud</button>
         </div>
       </section>
@@ -1112,46 +1135,63 @@ function initGarageSwipe(){
 
 
 function saveCarInfo(){
-  const c=activeCar();
-  if(!c) return;
-  c.name=setCarName.value||c.name||"New Car";
-  c.year=setYear.value||"";
-  c.make=setMake.value||"";
-  c.model=setModel.value||"";
-  c.chassis=setChassis.value||"N/A";
-  c.engine=setEngine.value||"N/A";
-  c.purchaseDate=setPurchaseDate.value||"";
-  c.purchaseMileage=setPurchaseMileage.value||"";
-  c.accent=setAccent.value||"#ff3b3b";
-  c.backgroundOpacity=setBgOpacity.value||".65";
-  c.backgroundImage=setBgUrl.value||c.backgroundImage||"";
-  c.goals=setGoals.value||"";
+  const c = activeCar();
+  if(!c){
+    alert("Open a car first.");
+    return;
+  }
+
+  const val = id => {
+    const el = document.getElementById(id);
+    return el ? el.value : "";
+  };
+
+  c.name = val("setCarName").trim() || "New Car";
+  c.year = val("setYear").trim();
+  c.make = val("setMake").trim();
+  c.model = val("setModel").trim();
+  c.chassis = val("setChassis").trim() || "N/A";
+  c.engine = val("setEngine").trim() || "N/A";
+  c.purchaseDate = val("setPurchaseDate");
+  c.purchaseMileage = val("setPurchaseMileage").trim();
+  c.accent = val("setAccent") || "#ff3b3b";
+  c.backgroundOpacity = val("setBgOpacity") || ".65";
+  c.backgroundImage = val("setBgUrl").trim() || c.backgroundImage || "";
+  c.goals = val("setGoals");
+
+  localStorage.setItem(KEY, JSON.stringify(state));
   save();
-  render();
-  const old=document.getElementById("carInfoSavedToast");
-  if(old) old.remove();
-  const t=document.createElement("div");
-  t.id="carInfoSavedToast";
-  t.className="mini-toast";
-  t.textContent="Saved";
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(),1200);
+
+  renderHero();
+  renderTotals();
+  renderTimeline();
+  renderGarage();
+  renderSettings();
+
+  showToast("Car info saved");
 }
 
 function renderSettings(){
-  const c=activeCar();if(!c)return;
-  setCarName.value=c.name||"";
-  setYear.value=c.year||"";
-  setMake.value=c.make||"";
-  setModel.value=c.model||"";
-  setChassis.value=c.chassis||"";
-  setEngine.value=c.engine||"";
-  setPurchaseDate.value=c.purchaseDate||"";
-  setPurchaseMileage.value=c.purchaseMileage||"";
-  setAccent.value=c.accent||"#ff3b3b";
-  setBgOpacity.value=c.backgroundOpacity||".65";
-  setBgUrl.value=c.backgroundImage||"";
-  setGoals.value=c.goals||"";
+  const c = activeCar();
+  if(!c) return;
+
+  const setVal = (id, value) => {
+    const el = document.getElementById(id);
+    if(el) el.value = value ?? "";
+  };
+
+  setVal("setCarName", c.name || "");
+  setVal("setYear", c.year || "");
+  setVal("setMake", c.make || "");
+  setVal("setModel", c.model || "");
+  setVal("setChassis", c.chassis || "");
+  setVal("setEngine", c.engine || "");
+  setVal("setPurchaseDate", c.purchaseDate || "");
+  setVal("setPurchaseMileage", c.purchaseMileage || "");
+  setVal("setAccent", c.accent || "#ff3b3b");
+  setVal("setBgOpacity", c.backgroundOpacity || ".65");
+  setVal("setBgUrl", c.backgroundImage || "");
+  setVal("setGoals", c.goals || "");
 }
 
 function getService(id){
@@ -1490,6 +1530,19 @@ function initTimelineSwipe(){
       }
     });
   });
+}
+
+
+function showToast(message){
+  const old = document.getElementById("miniToast");
+  if(old) old.remove();
+
+  const t = document.createElement("div");
+  t.id = "miniToast";
+  t.className = "mini-toast";
+  t.textContent = message;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),1300);
 }
 
 function showPage(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));btn.classList.add("active");window.scrollTo({top:0,behavior:"smooth"})}
