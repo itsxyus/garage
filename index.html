@@ -1,0 +1,2745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Clifford Build Log</title>
+<style>
+:root{--accent:#ff3b3b;
+  --bg:#050608;
+  --panel:#111319;
+  --line:rgba(255,255,255,.11);
+  --text:#f6f6f6;
+  --muted:#a3a6ad;
+  --red:var(--accent,#ff3b3b);
+  --red-dark:#8f1616;
+  --green:#54db8d;
+  --yellow:#ffcc4d;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{overflow-x:hidden}
+body{
+  margin:0;
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  background:
+    radial-gradient(circle at 85% 5%,rgba(255,59,59,.14),transparent 30%),
+    radial-gradient(circle at 8% 0%,rgba(255,255,255,.06),transparent 26%),
+    linear-gradient(145deg,#030405,#090b10 52%,#100707);
+  min-height:100vh;
+  padding-bottom:96px;
+}
+.app{
+  width:min(1120px,100%);
+  margin:0 auto;
+  padding:22px 18px 28px;
+}
+.hero{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:18px;
+  align-items:stretch;
+  margin-bottom:18px;
+}
+.car-card{
+  display:flex;
+  gap:18px;
+  align-items:center;
+  min-width:0;
+  overflow:visible;
+}
+.car-img{
+  cursor:pointer;
+  object-fit:contain;
+  image-rendering:auto;
+  
+  
+  object-fit:cover;
+  
+  
+  
+  
+  flex:0 0 auto;
+
+  width:260px;
+  height:145px;
+  border-radius:0;
+  background:transparent;
+  border:0;
+  box-shadow:none;}
+.title{min-width:0}
+.title h1{
+  margin:0;
+  font-size:clamp(2.3rem,7vw,4rem);
+  letter-spacing:-.06em;
+  line-height:.95;
+  overflow-wrap:anywhere;
+}
+.model{
+  color:var(--red);
+  font-size:clamp(1.05rem,3.8vw,1.65rem);
+  margin-top:10px;
+  font-weight:700;
+}
+.tags{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.tag{
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  border-radius:10px;
+  padding:7px 12px;
+  font-weight:800;
+}
+.total-card{
+  min-width:235px;
+  border:1px solid var(--line);
+  border-radius:22px;
+  background:rgba(17,19,25,.72);
+  backdrop-filter:blur(18px);
+  padding:18px 20px;
+  box-shadow:0 18px 45px rgba(0,0,0,.28);
+}
+.total-card small{display:block;color:var(--muted);font-size:1rem;font-weight:700}
+.total-card strong{
+  display:block;
+  color:var(--red);
+  font-size:2rem;
+  margin:8px 0 12px;
+  letter-spacing:-.04em;
+}
+.money-row{
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  color:#d9d9d9;
+  border-top:1px solid rgba(255,255,255,.08);
+  padding-top:8px;
+  line-height:1.6;
+}
+.owned-card{
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:linear-gradient(135deg,rgba(255,59,59,.13),rgba(255,255,255,.035));
+  padding:15px 18px;
+  margin:16px 0 10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+.owned-card span{color:var(--muted);font-weight:800}
+.owned-card b{font-size:1.05rem;color:#fff;text-align:right}
+.stage{
+  position:relative;
+  min-height:420px;
+}
+.page{
+  display:none;
+  opacity:0;
+  transform:scale(.965) translateY(14px);
+  filter:blur(4px);
+}
+.page.active{
+  display:block;
+  animation:pageIn .26s cubic-bezier(.2,.75,.25,1) forwards;
+}
+.page.leaving{
+  display:block;
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  animation:pageOut .22s cubic-bezier(.2,.75,.25,1) forwards;
+}
+@keyframes pageIn{
+  from{opacity:0;transform:scale(.965) translateY(14px);filter:blur(4px)}
+  to{opacity:1;transform:scale(1) translateY(0);filter:blur(0)}
+}
+@keyframes pageOut{
+  from{opacity:1;transform:scale(1) translateY(0);filter:blur(0)}
+  to{opacity:0;transform:scale(.94) translateY(-10px);filter:blur(5px)}
+}
+.section{
+  border:1px solid var(--line);
+  border-radius:22px;
+  background:linear-gradient(145deg,rgba(18,20,27,.86),rgba(10,12,17,.78));
+  box-shadow:0 18px 44px rgba(0,0,0,.32);
+  padding:20px;
+  margin:18px 0;
+  overflow:hidden;
+}
+.section-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding-bottom:14px;
+  border-bottom:1px solid rgba(255,255,255,.1);
+}
+.section-controls{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.sort-select{
+  width:auto;
+  min-width:150px;
+  margin-top:0;
+  padding:9px 10px;
+  border-radius:13px;
+  font-size:.86rem;
+  font-weight:800;
+}
+.planned-line{
+  color:var(--muted);
+  font-size:.86rem;
+  font-weight:800;
+  margin-top:-6px;
+  margin-bottom:10px;
+}
+.planned-line b{color:var(--yellow)}
+.section h2{
+  margin:0;
+  font-size:clamp(1.55rem,4vw,2.55rem);
+  letter-spacing:-.05em;
+}
+.btn{
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  border-radius:15px;
+  padding:11px 15px;
+  font-weight:900;
+  font-size:.95rem;
+  cursor:pointer;
+}
+.btn.red{
+  background:linear-gradient(135deg,rgba(255,59,59,.9),rgba(130,18,18,.9));
+  border-color:rgba(255,95,95,.7);
+}
+.btn.danger{background:#301014;color:#ffd0d0;border-color:#6f252b}
+.swipe-wrap{
+  position:relative;
+  overflow:hidden;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.swipe-wrap:last-child{border-bottom:none}
+.delete-bg{
+  position:absolute;
+  inset:0 0 0 auto;
+  width:112px;
+  background:linear-gradient(135deg,#5a1016,#c92c34);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-weight:950;
+  letter-spacing:.02em;
+  opacity:0;
+  transform:translateX(18px);
+  transition:opacity .18s ease, transform .18s ease;
+  pointer-events:none;
+}
+.swipe-wrap.show-delete .delete-bg{
+  opacity:1;
+  transform:translateX(0);
+  pointer-events:auto;
+}
+.item,.service-item{
+  position:relative;
+  background:transparent;
+  transition:transform .22s ease, background .18s ease;
+  touch-action:pan-y;
+}
+.item{
+  display:grid;
+  grid-template-columns:150px minmax(0,1fr) auto 24px;
+  gap:22px;
+  align-items:center;
+  padding:16px 4px;
+}
+.item.swiped,.service-item.swiped{transform:translateX(-112px)}
+.thumb{
+  cursor:pointer;
+  width:150px;
+  height:96px;
+  border-radius:14px;
+  object-fit:cover;
+  background:#0b0d11;
+  border:1px solid rgba(255,255,255,.14);
+}
+.info{min-width:0}
+.info h3{
+  margin:0 0 8px;
+  font-size:1.35rem;
+  letter-spacing:-.03em;
+  line-height:1.15;
+  overflow-wrap:anywhere;
+}
+.meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  color:var(--muted);
+  font-weight:700;
+  font-size:.86rem;
+}
+.pill{
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.045);
+  border-radius:999px;
+  padding:5px 9px;
+}
+.price{
+  color:var(--red);
+  font-size:1.45rem;
+  font-weight:950;
+  white-space:nowrap;
+}
+.chev{font-size:2rem;color:#858990}
+.editor{
+  display:none;
+  grid-column:1/-1;
+  background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:18px;
+  padding:14px;
+  margin-top:-4px;
+  max-width:100%;
+}
+.editor.open{display:block}
+.form{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+label{
+  color:var(--muted);
+  font-size:.75rem;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  min-width:0;
+}
+input,select,textarea{
+  width:100%;
+  max-width:100%;
+  margin-top:5px;
+  background:#0b0e14;
+  color:var(--text);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;
+  padding:11px;
+  font:inherit;
+  outline:none;
+}
+textarea{min-height:70px;resize:vertical}
+.full{grid-column:1/-1}
+.span2{grid-column:span 2}
+.actions{
+  display:flex;
+  gap:8px;
+  justify-content:flex-end;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+.service-item{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:12px;
+  padding:15px 4px;
+}
+.service-title{
+  font-size:1.2rem;
+  font-weight:900;
+  margin-bottom:6px;
+  overflow-wrap:anywhere;
+}
+.service-sub{
+  color:var(--muted);
+  font-weight:700;
+  line-height:1.5;
+}
+.due{
+  text-align:right;
+  font-weight:950;
+  color:var(--red);
+  white-space:nowrap;
+}
+.due.good{color:var(--green)}
+.due.warn{color:var(--yellow)}
+.due.bad{color:var(--red)}
+.overview-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+.mini{
+  background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:18px;
+  padding:16px;
+  min-width:0;
+}
+.mini span{display:block;color:var(--muted);font-weight:800;margin-bottom:7px}
+.mini b{font-size:1.45rem;color:var(--red)}
+.timeline-entry{
+  display:grid;
+  grid-template-columns:15px minmax(0,1fr) auto;
+  gap:12px;
+  align-items:start;
+  padding:14px 0;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.timeline-entry:last-child{border-bottom:none}
+.dot{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  background:var(--red);
+  margin-top:7px;
+  box-shadow:0 0 18px rgba(255,59,59,.55);
+}
+.timeline-title{font-weight:950;font-size:1.12rem}
+.timeline-sub{color:var(--muted);font-weight:700;margin-top:4px;line-height:1.4}
+.timeline-date{color:var(--red);font-weight:950;white-space:nowrap}
+.bottom-tabs{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  padding:10px 10px max(10px,env(safe-area-inset-bottom));
+  background:rgba(10,11,15,.88);
+  border-top:1px solid rgba(255,255,255,.1);
+  backdrop-filter:blur(20px);
+  display:flex;
+  justify-content:center;
+  gap:2px;
+  z-index:50;
+}
+.tab{
+  flex:1;
+  max-width:190px;
+  border:0;
+  background:transparent;
+  color:#898d95;
+  padding:8px 4px 6px;
+  border-radius:16px;
+  font-weight:900;
+  cursor:pointer;
+  transition:transform .18s ease, background .18s ease, color .18s ease;
+}
+.tab .ico{display:block;font-size:1.55rem;line-height:1}
+.tab .txt{display:block;font-size:.78rem;margin-top:3px}
+.tab.active{
+  color:var(--red);
+  background:rgba(255,59,59,.08);
+  transform:scale(1.06) translateY(-2px);
+}
+.hidden{display:none!important}
+@media(max-width:800px){
+  .section-head{align-items:flex-start}
+  .section-controls{width:100%;justify-content:space-between}
+  .sort-select{flex:1;min-width:120px}
+
+  .app{padding:16px 12px 24px}
+  .hero{grid-template-columns:1fr}
+  .car-card{align-items:flex-start}
+  .car-img{width:142px;height:84px;border-radius:17px}
+  .total-card{min-width:0}
+  .owned-card{align-items:flex-start;flex-direction:column}
+  .owned-card b{text-align:left}
+  .item{grid-template-columns:96px minmax(0,1fr) auto 16px;gap:12px}
+  .thumb{width:96px;height:82px}
+  .info h3{font-size:1.05rem}
+  .price{font-size:1.05rem}
+  .chev{font-size:1.4rem}
+  .section{padding:14px;border-radius:20px}
+  .form{grid-template-columns:1fr 1fr}
+  .span2,.full{grid-column:1/-1}
+  .overview-grid{grid-template-columns:1fr}
+}
+@media(max-width:430px){
+  .item{grid-template-columns:82px minmax(0,1fr) auto 12px;gap:9px}
+  .thumb{width:82px;height:76px}
+  .meta{display:none}
+  .price{font-size:.98rem}
+  .btn{padding:9px 11px}
+  .service-item{grid-template-columns:1fr}
+  .due{text-align:left}
+  .timeline-entry{grid-template-columns:12px minmax(0,1fr)}
+  .timeline-date{grid-column:2}
+}
+
+/* Mobile garage polish */
+
+.sticky-hero{
+  position:sticky;
+  top:calc(env(safe-area-inset-top) + 12px);
+  z-index:30;
+  background:linear-gradient(145deg,rgba(5,6,8,.92),rgba(10,11,15,.78));
+  backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:24px;
+  padding:12px;
+  margin-top:calc(env(safe-area-inset-top) + 8px);
+  box-shadow:0 14px 35px rgba(0,0,0,.3);
+}
+.sticky-hero .car-img{
+  width:230px;
+  height:130px;
+  object-fit:contain;
+}
+.sticky-hero .title h1{
+  font-size:clamp(1.8rem,6vw,3.2rem);
+}
+.sticky-hero .model{
+  font-size:clamp(.95rem,3vw,1.25rem);
+}
+.sticky-hero .total-card{
+  padding:14px 16px;
+  min-width:200px;
+}
+.sticky-hero .total-card strong{
+  font-size:1.55rem;
+}
+
+.bottom-tabs{
+  padding:7px 10px max(5px,calc(env(safe-area-inset-bottom) - 6px));
+}
+.tab{
+  padding:6px 4px 4px;
+}
+
+
+
+
+
+
+
+
+
+@media(max-width:800px){
+  .sticky-hero{
+    top:calc(env(safe-area-inset-top) + 10px);
+    margin-top:calc(env(safe-area-inset-top) + 8px);
+    grid-template-columns:1fr;
+  }
+  .sticky-hero .car-card{
+    width:100%;
+  }
+  .sticky-hero .car-img{
+    width:170px;
+    height:100px;
+  }
+  .sticky-hero .tags{
+    display:none;
+  }
+  
+@media(max-width:430px){
+  .sticky-hero{
+    padding:10px;
+    border-radius:20px;
+  }
+  .sticky-hero .car-img{
+    width:155px;
+    height:94px;
+  }
+  .sticky-hero .title h1{
+    font-size:1.75rem;
+  }
+  .sticky-hero .model{
+    font-size:.9rem;
+  }
+  .sticky-hero .total-card{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:4px 12px;
+  }
+  .sticky-hero .total-card small,
+  .sticky-hero .total-card strong{
+    grid-column:1/-1;
+  }
+  .sticky-hero .money-row{
+    border-top:0;
+    padding-top:0;
+    display:block;
+    font-size:.86rem;
+  }
+}
+
+
+/* v4 clean/slim typography + hero layout reset */
+body{
+  font-weight:400;
+}
+.title h1{
+  font-weight:650 !important;
+  letter-spacing:-.045em;
+}
+.model{
+  font-weight:500 !important;
+}
+.tag{
+  font-weight:500 !important;
+}
+.total-card small,
+.money-row,
+.money-row b{
+  font-weight:450 !important;
+}
+.total-card strong{
+  font-weight:650 !important;
+}
+.section h2{
+  font-weight:600 !important;
+}
+.btn,
+.sort-select,
+label,
+.meta,
+.pill,
+.service-sub,
+.timeline-sub,
+.tab{
+  font-weight:500 !important;
+}
+.info h3,
+.service-title,
+.timeline-title,
+.price,
+.due,
+.mini b{
+  font-weight:600 !important;
+}
+.mini span{
+  font-weight:450 !important;
+}
+
+/* Hero should look like the original concept: car + title in clean horizontal block */
+.sticky-hero{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) auto !important;
+  align-items:center !important;
+  gap:18px !important;
+  padding:18px 22px !important;
+  border-radius:24px !important;
+}
+.sticky-hero .car-card{
+  display:flex !important;
+  align-items:center !important;
+  gap:28px !important;
+}
+.sticky-hero .car-img{
+  width:260px !important;
+  height:145px !important;
+  object-fit:contain !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  flex:0 0 auto !important;
+}
+.sticky-hero .title h1{
+  font-size:clamp(2.1rem,5.2vw,3.6rem) !important;
+}
+.sticky-hero .model{
+  font-size:clamp(1.05rem,2.7vw,1.5rem) !important;
+}
+.sticky-hero .tags{
+  display:flex !important;
+}
+.sticky-hero .total-card{
+  min-width:215px !important;
+}
+@media(max-width:800px){
+  .sticky-hero{
+    grid-template-columns:1fr !important;
+    gap:12px !important;
+  }
+  .sticky-hero .car-card{
+    gap:16px !important;
+  }
+  .sticky-hero .car-img{
+    width:185px !important;
+    height:108px !important;
+  }
+  .sticky-hero .title h1{
+    font-size:1.62rem !important;
+  }
+  .sticky-hero .model{
+    font-size:1.05rem !important;
+  }
+}
+@media(max-width:430px){
+  .sticky-hero{
+    padding:14px !important;
+  }
+  .sticky-hero .car-card{
+    gap:12px !important;
+  }
+  .sticky-hero .car-img{
+    width:150px !important;
+    height:90px !important;
+  }
+  .sticky-hero .title h1{
+    font-size:1.85rem !important;
+  }
+  .sticky-hero .model{
+    font-size:.92rem !important;
+  }
+  .sticky-hero .total-card{
+    display:block !important;
+  }
+  .sticky-hero .money-row{
+    display:flex !important;
+  }
+}
+
+
+/* v4.1 fixes: category header alignment + bigger hero image */
+.section-head{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) auto !important;
+  align-items:center !important;
+  gap:12px !important;
+}
+.section-controls{
+  display:grid !important;
+  grid-template-columns:minmax(140px,190px) auto !important;
+  align-items:center !important;
+  gap:10px !important;
+  width:auto !important;
+}
+.sort-select{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:190px !important;
+}
+.section-controls .btn{
+  white-space:nowrap !important;
+}
+
+/* Make carrito the main visual again */
+.sticky-hero .car-card{
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  justify-items:center !important;
+  text-align:center !important;
+  gap:8px !important;
+}
+.sticky-hero .car-img{
+  width:min(92vw,420px) !important;
+  height:190px !important;
+  object-fit:contain !important;
+}
+.sticky-hero .title h1{
+  font-size:clamp(2.4rem,7vw,3.8rem) !important;
+}
+.sticky-hero .model{
+  font-size:clamp(1.05rem,3.5vw,1.45rem) !important;
+}
+.sticky-hero .tags{
+  justify-content:center !important;
+}
+
+/* Keep totals from eating the hero on smaller screens */
+@media(max-width:800px){
+  .sticky-hero{
+    grid-template-columns:1fr !important;
+  }
+  .sticky-hero .car-img{
+    width:min(92vw,390px) !important;
+    height:175px !important;
+  }
+  .section-head{
+    grid-template-columns:1fr !important;
+  }
+  .section-controls{
+    grid-template-columns:minmax(0,1fr) auto !important;
+    width:100% !important;
+  }
+}
+@media(max-width:430px){
+  .sticky-hero .car-img{
+    width:100% !important;
+    height:160px !important;
+  }
+  .sticky-hero .title h1{
+    font-size:2.4rem !important;
+  }
+  .section-controls{
+    grid-template-columns:minmax(0,1fr) auto !important;
+  }
+  .sort-select{
+    max-width:none !important;
+  }
+  .section-controls .btn{
+    padding-left:12px !important;
+    padding-right:12px !important;
+  }
+}
+
+
+/* v4.2 direct image upload + transparent hero cleanup */
+.car-img,
+.sticky-hero .car-img{
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+  object-fit:contain !important;
+}
+
+
+/* v4.3 photo upload fix */
+.mini-photo-btn{
+  margin-top:10px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.045);
+  color:var(--text);
+  border-radius:12px;
+  padding:8px 11px;
+  font:inherit;
+  font-weight:500;
+}
+.hidden{
+  display:none !important;
+}
+
+
+/* v4.4 rebuilt photo upload system */
+.real-file-input{
+  position:absolute;
+  width:1px;
+  height:1px;
+  opacity:0;
+  pointer-events:none;
+}
+.file-btn,
+.mini-photo-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-top:10px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.045);
+  color:var(--text);
+  border-radius:12px;
+  padding:8px 11px;
+  font:inherit;
+  font-weight:500;
+  cursor:pointer;
+}
+.car-img,
+.sticky-hero .car-img{
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+  object-fit:contain !important;
+}
+
+/* Return hero to the reference layout: car left, name middle, totals right */
+.sticky-hero{
+  grid-template-columns:minmax(0,1fr) auto !important;
+  align-items:center !important;
+}
+.sticky-hero .car-card{
+  display:grid !important;
+  grid-template-columns:minmax(190px,300px) minmax(0,1fr) !important;
+  align-items:center !important;
+  justify-items:start !important;
+  text-align:left !important;
+  gap:28px !important;
+}
+.sticky-hero .car-img{
+  width:300px !important;
+  height:160px !important;
+}
+.sticky-hero .tags{
+  justify-content:flex-start !important;
+}
+@media(max-width:800px){
+  .sticky-hero{
+    grid-template-columns:1fr !important;
+  }
+  .sticky-hero .car-card{
+    grid-template-columns:minmax(135px,185px) minmax(0,1fr) !important;
+    gap:14px !important;
+  }
+  .sticky-hero .car-img{
+    width:185px !important;
+    height:110px !important;
+  }
+}
+@media(max-width:430px){
+  .sticky-hero .car-card{
+    grid-template-columns:minmax(145px,170px) minmax(0,1fr) !important;
+    gap:10px !important;
+  }
+  .sticky-hero .car-img{
+    width:170px !important;
+    height:105px !important;
+  }
+  .mini-photo-btn{
+    padding:6px 9px;
+    font-size:.82rem;
+  }
+}
+
+
+/* v4.6 hero refinement */
+.sticky-hero{
+  padding:20px 22px 18px !important;
+}
+
+.sticky-hero .car-card{
+  grid-template-columns:minmax(240px,420px) minmax(0,1fr) !important;
+  align-items:center !important;
+  gap:10px !important;
+}
+
+.sticky-hero .car-img{
+  width:100% !important;
+  max-width:420px !important;
+  height:220px !important;
+  object-fit:contain !important;
+  transform:scale(1.18);
+  transform-origin:center;
+}
+
+.total-card strong{
+  font-size:1.78rem !important;
+  font-weight:600 !important;
+}
+
+.total-card{
+  min-width:195px !important;
+}
+
+.money-row{
+  font-size:1rem !important;
+}
+
+@media(max-width:800px){
+  .sticky-hero .car-card{
+    grid-template-columns:minmax(220px,1fr) minmax(0,1fr) !important;
+    gap:2px !important;
+  }
+
+  .sticky-hero .car-img{
+    max-width:none !important;
+    width:100% !important;
+    height:185px !important;
+    transform:scale(1.22);
+  }
+
+  .total-card strong{
+    font-size:2.15rem !important;
+  }
+}
+
+@media(max-width:430px){
+  .sticky-hero{
+    padding:14px !important;
+  }
+
+  .sticky-hero .car-card{
+    grid-template-columns:52% 48% !important;
+    gap:0px !important;
+  }
+
+  .sticky-hero .car-img{
+    width:118% !important;
+    max-width:none !important;
+    height:170px !important;
+    transform:scale(1.32);
+    margin-left:-14px;
+  }
+
+  .sticky-hero .title h1{
+    font-size:3rem !important;
+    line-height:.92 !important;
+  }
+
+  .sticky-hero .model{
+    font-size:1rem !important;
+  }
+
+  .total-card{
+    min-width:unset !important;
+  }
+
+  .total-card strong{
+    font-size:1.5rem !important;
+  }
+}
+
+
+/* v4.9 tighten total card sizing */
+.total-card{
+  min-width:165px !important;
+  max-width:185px !important;
+  padding:14px 16px !important;
+  border-radius:20px !important;
+  margin-left:auto !important;
+}
+
+.total-card strong{
+  line-height:1 !important;
+}
+
+.money-row{
+  font-size:.92rem !important;
+  gap:10px !important;
+}
+
+@media(max-width:800px){
+  .total-card{
+    min-width:unset !important;
+    max-width:none !important;
+    padding:13px 15px !important;
+  }
+}
+
+@media(max-width:430px){
+  .sticky-hero{
+    gap:10px !important;
+  }
+
+  .total-card{
+    width:100% !important;
+    padding:12px 14px !important;
+  }
+
+  .money-row{
+    font-size:.88rem !important;
+  }
+}
+
+
+/* v5 compact total card: red amount on right */
+.total-card{
+  display:grid !important;
+  grid-template-columns:1fr auto !important;
+  align-items:center !important;
+  column-gap:12px !important;
+  row-gap:6px !important;
+}
+
+.total-card small{
+  grid-column:1 !important;
+  grid-row:1 !important;
+}
+
+.total-card strong{
+  grid-column:2 !important;
+  grid-row:1 !important;
+  margin:0 !important;
+  text-align:right !important;
+  white-space:nowrap !important;
+}
+
+.total-card .money-row{
+  grid-column:1 / -1 !important;
+}
+
+@media(max-width:430px){
+  .total-card{
+    grid-template-columns:1fr auto !important;
+  }
+  .total-card small{
+    font-size:.9rem !important;
+  }
+  .total-card strong{
+    font-size:1.45rem !important;
+  }
+}
+
+
+/* v5.1 hero/totals spacing correction */
+.sticky-hero{
+  position:relative !important;
+  align-items:start !important;
+  padding-bottom:24px !important;
+}
+
+/* Give the car image breathing room so it never touches/overlaps the money card */
+.sticky-hero .car-card{
+  margin-bottom:18px !important;
+}
+
+.sticky-hero .car-img{
+  margin-bottom:12px !important;
+  z-index:1 !important;
+}
+
+/* Total card: smaller footprint, lower placement, useful horizontal layout */
+.total-card{
+  width:100% !important;
+  max-width:none !important;
+  min-width:0 !important;
+  margin:8px 0 0 0 !important;
+  padding:18px 22px !important;
+  display:grid !important;
+  grid-template-columns:1fr auto !important;
+  grid-template-rows:auto auto auto auto !important;
+  align-items:center !important;
+  column-gap:14px !important;
+  row-gap:4px !important;
+}
+
+/* Drop label down to line up with the red amount */
+.total-card small{
+  grid-column:1 !important;
+  grid-row:1 !important;
+  align-self:center !important;
+  margin-top:4px !important;
+}
+
+/* Amount stays right, but not huge/dead-space-y */
+.total-card strong{
+  grid-column:2 !important;
+  grid-row:1 !important;
+  align-self:center !important;
+  justify-self:end !important;
+  margin:0 !important;
+  font-size:1.55rem !important;
+  line-height:1 !important;
+  text-align:right !important;
+  white-space:nowrap !important;
+}
+
+/* Rows underneath: label left, values right */
+.total-card .money-row{
+  grid-column:1 / -1 !important;
+  display:grid !important;
+  grid-template-columns:1fr auto !important;
+  gap:12px !important;
+  align-items:center !important;
+  border-top:0 !important;
+  padding-top:0 !important;
+  font-size:.92rem !important;
+}
+
+@media(max-width:800px){
+  .sticky-hero{
+    padding-bottom:18px !important;
+  }
+
+  .sticky-hero .car-card{
+    margin-bottom:16px !important;
+  }
+
+  .total-card{
+    margin-top:6px !important;
+    padding:16px 18px !important;
+  }
+
+  .total-card strong{
+    font-size:1.45rem !important;
+  }
+}
+
+@media(max-width:430px){
+  .sticky-hero .car-card{
+    margin-bottom:18px !important;
+  }
+
+  .sticky-hero .car-img{
+    margin-bottom:16px !important;
+  }
+
+  .total-card{
+    margin-top:10px !important;
+    padding:15px 18px !important;
+  }
+
+  .total-card strong{
+    font-size:1.38rem !important;
+  }
+
+  .total-card small{
+    margin-top:2px !important;
+  }
+}
+
+
+/* v5.2 tighter total card + lowered label */
+.total-card{
+  padding:13px 18px !important;
+  row-gap:2px !important;
+  border-radius:18px !important;
+}
+
+.total-card small{
+  align-self:end !important;
+  margin-top:16px !important;
+  transform:translateY(8px) !important;
+  font-size:.95rem !important;
+}
+
+.total-card strong{
+  align-self:end !important;
+  transform:translateY(8px) !important;
+  font-size:1.35rem !important;
+}
+
+.total-card .money-row:first-of-type{
+  margin-top:6px !important;
+}
+
+.total-card .money-row{
+  font-size:.86rem !important;
+  line-height:1.25 !important;
+}
+
+@media(max-width:430px){
+  .total-card{
+    padding:12px 16px !important;
+  }
+
+  .total-card small{
+    margin-top:14px !important;
+    transform:translateY(7px) !important;
+  }
+
+  .total-card strong{
+    font-size:1.28rem !important;
+    transform:translateY(7px) !important;
+  }
+
+  .total-card .money-row{
+    font-size:.84rem !important;
+  }
+}
+
+
+/* v5.3 total card fixed: clean label-left / value-right rows */
+.total-card{
+  display:grid !important;
+  grid-template-columns:1fr auto !important;
+  gap:7px 14px !important;
+  align-items:center !important;
+  padding:14px 18px !important;
+  border-radius:18px !important;
+  min-height:0 !important;
+}
+
+/* Total Spent row */
+.total-card small{
+  grid-column:1 !important;
+  grid-row:1 !important;
+  margin:0 !important;
+  transform:none !important;
+  align-self:center !important;
+  font-size:.95rem !important;
+  line-height:1.2 !important;
+}
+
+.total-card strong{
+  grid-column:2 !important;
+  grid-row:1 !important;
+  margin:0 !important;
+  transform:none !important;
+  align-self:center !important;
+  justify-self:end !important;
+  font-size:1.18rem !important;
+  line-height:1.2 !important;
+  text-align:right !important;
+  white-space:nowrap !important;
+}
+
+/* Mods / Services / Planned rows */
+.total-card .money-row{
+  grid-column:1 / -1 !important;
+  display:grid !important;
+  grid-template-columns:1fr auto !important;
+  align-items:center !important;
+  gap:14px !important;
+  border-top:0 !important;
+  padding:0 !important;
+  margin:0 !important;
+  font-size:.92rem !important;
+  line-height:1.25 !important;
+}
+
+.total-card .money-row span{
+  text-align:left !important;
+}
+
+.total-card .money-row b{
+  text-align:right !important;
+  justify-self:end !important;
+  white-space:nowrap !important;
+}
+
+@media(max-width:430px){
+  .total-card{
+    padding:13px 16px !important;
+    gap:6px 12px !important;
+  }
+
+  .total-card strong{
+    font-size:1.12rem !important;
+  }
+
+  .total-card small,
+  .total-card .money-row{
+    font-size:.88rem !important;
+  }
+}
+
+
+/* v5.4 REAL total-card fix: four normal rows, label left, amount right */
+.total-card.total-rows{
+  display:block !important;
+  width:100% !important;
+  max-width:none !important;
+  min-width:0 !important;
+  padding:15px 18px !important;
+  border-radius:18px !important;
+  margin:10px 0 0 0 !important;
+}
+
+.total-card.total-rows .total-row{
+  display:grid !important;
+  grid-template-columns:1fr auto !important;
+  align-items:center !important;
+  gap:18px !important;
+  width:100% !important;
+  min-height:26px !important;
+  line-height:1.2 !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+
+.total-card.total-rows .total-row span{
+  color:#d9d9df !important;
+  font-size:.98rem !important;
+  font-weight:400 !important;
+  text-align:left !important;
+  white-space:nowrap !important;
+}
+
+.total-card.total-rows .total-row b{
+  color:#f1f1f4 !important;
+  font-size:.98rem !important;
+  font-weight:450 !important;
+  text-align:right !important;
+  justify-self:end !important;
+  white-space:nowrap !important;
+}
+
+.total-card.total-rows .total-row.main span{
+  color:var(--muted) !important;
+  font-size:1rem !important;
+  font-weight:400 !important;
+}
+
+.total-card.total-rows .total-row.main b{
+  color:var(--red) !important;
+  font-size:1.05rem !important;
+  font-weight:600 !important;
+}
+
+.total-card.total-rows .total-row.muted span,
+.total-card.total-rows .total-row.muted b{
+  color:var(--muted) !important;
+}
+
+.total-card.total-rows small,
+.total-card.total-rows strong,
+.total-card.total-rows .money-row{
+  all:unset !important;
+  display:none !important;
+}
+
+@media(max-width:430px){
+  .total-card.total-rows{
+    padding:14px 16px !important;
+  }
+
+  .total-card.total-rows .total-row{
+    min-height:24px !important;
+  }
+
+  .total-card.total-rows .total-row span,
+  .total-card.total-rows .total-row b{
+    font-size:.92rem !important;
+  }
+
+  .total-card.total-rows .total-row.main span{
+    font-size:.94rem !important;
+  }
+
+  .total-card.total-rows .total-row.main b{
+    font-size:1rem !important;
+  }
+}
+
+
+/* v5.5 category header fixed: title + sort + add all same line */
+.section-head{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) auto !important;
+  align-items:center !important;
+  gap:12px !important;
+}
+
+.section-head h2{
+  min-width:0 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  margin:0 !important;
+}
+
+.section-controls{
+  display:grid !important;
+  grid-template-columns:150px auto !important;
+  align-items:center !important;
+  gap:10px !important;
+  width:auto !important;
+  justify-self:end !important;
+}
+
+.sort-select{
+  width:150px !important;
+  min-width:0 !important;
+  max-width:150px !important;
+  margin:0 !important;
+  height:44px !important;
+}
+
+.section-controls .btn{
+  height:44px !important;
+  white-space:nowrap !important;
+  padding:0 14px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+
+/* Mobile still stays one line, just tighter */
+@media(max-width:430px){
+  .section-head{
+    grid-template-columns:minmax(0,1fr) auto !important;
+    gap:8px !important;
+  }
+
+  .section h2{
+    font-size:1.6rem !important;
+  }
+
+  .section-controls{
+    grid-template-columns:112px auto !important;
+    gap:7px !important;
+  }
+
+  .sort-select{
+    width:112px !important;
+    max-width:112px !important;
+    height:40px !important;
+    font-size:.82rem !important;
+    padding-left:9px !important;
+    padding-right:6px !important;
+  }
+
+  .section-controls .btn{
+    height:40px !important;
+    padding:0 10px !important;
+    font-size:.82rem !important;
+  }
+}
+
+@media(max-width:370px){
+  .section h2{
+    font-size:1.35rem !important;
+  }
+
+  .section-controls{
+    grid-template-columns:98px auto !important;
+  }
+
+  .sort-select{
+    width:98px !important;
+    max-width:98px !important;
+  }
+
+  .section-controls .btn{
+    padding:0 8px !important;
+  }
+}
+
+
+/* v5.6 tighten top spacing + enlarge hero image */
+body{
+  padding-top:8px !important;
+}
+
+.app,
+.container,
+main{
+  margin-top:0 !important;
+}
+
+.sticky-hero{
+  padding-top:10px !important;
+  padding-bottom:14px !important;
+}
+
+.sticky-hero .car-card{
+  gap:0px !important;
+  margin-bottom:10px !important;
+}
+
+/* Smaller title so image can dominate */
+.sticky-hero .title h1,
+.sticky-hero h1{
+  font-size:3.2rem !important;
+  line-height:.92 !important;
+  font-weight:650 !important;
+  letter-spacing:-0.04em !important;
+  margin-bottom:6px !important;
+}
+
+/* Bigger car image */
+.sticky-hero .car-img{
+  width:132% !important;
+  max-width:none !important;
+  height:215px !important;
+  object-fit:contain !important;
+  margin-left:-22px !important;
+  transform:none !important;
+}
+
+@media(max-width:430px){
+  body{
+    padding-top:2px !important;
+  }
+
+  .sticky-hero{
+    padding-top:6px !important;
+    padding-bottom:10px !important;
+  }
+
+  .sticky-hero .title h1,
+  .sticky-hero h1{
+    font-size:2.55rem !important;
+    line-height:.92 !important;
+    margin-bottom:4px !important;
+  }
+
+  .sticky-hero .model{
+    font-size:.95rem !important;
+  }
+
+  .sticky-hero .car-img{
+    width:145% !important;
+    height:190px !important;
+    margin-left:-34px !important;
+  }
+}
+
+
+/* v5.7 hero rebalance: larger car, smaller text, less dead space */
+.sticky-hero{
+  padding:8px 14px 10px !important;
+}
+
+.sticky-hero .car-card{
+  grid-template-columns:58% 42% !important;
+  align-items:center !important;
+  gap:0 !important;
+  margin-bottom:4px !important;
+}
+
+/* BIGGER CAR */
+.sticky-hero .car-img{
+  width:168% !important;
+  max-width:none !important;
+  height:250px !important;
+  object-fit:contain !important;
+  margin-left:-58px !important;
+  margin-top:-2px !important;
+}
+
+/* SMALLER TITLE */
+.sticky-hero .title h1,
+.sticky-hero h1{
+  font-size:2.15rem !important;
+  line-height:.92 !important;
+  font-weight:620 !important;
+  letter-spacing:-0.045em !important;
+  margin-bottom:4px !important;
+}
+
+/* Smaller subtitle */
+.sticky-hero .model{
+  font-size:.88rem !important;
+  margin-bottom:10px !important;
+}
+
+/* Smaller FE1/1.5T pills */
+.sticky-hero .spec-pill{
+  font-size:.82rem !important;
+  padding:8px 14px !important;
+  border-radius:16px !important;
+}
+
+@media(max-width:430px){
+  .sticky-hero{
+    padding:6px 12px 8px !important;
+  }
+
+  .sticky-hero .car-card{
+    grid-template-columns:60% 40% !important;
+  }
+
+  .sticky-hero .car-img{
+    width:182% !important;
+    height:240px !important;
+    margin-left:-72px !important;
+  }
+
+  .sticky-hero .title h1,
+  .sticky-hero h1{
+    font-size:1.95rem !important;
+    margin-bottom:2px !important;
+  }
+
+  .sticky-hero .model{
+    font-size:.8rem !important;
+    margin-bottom:8px !important;
+  }
+
+  .sticky-hero .spec-pill{
+    font-size:.75rem !important;
+    padding:7px 12px !important;
+  }
+}
+
+
+/* v5.8 Tail of the Dragon background + glass cards */
+html{
+  background:#050608 !important;
+}
+
+body{
+  background:
+    linear-gradient(rgba(4,5,8,.72), rgba(4,5,8,.82)),
+    url("https://tailofthedragon.com/wp-content/uploads/2025/06/TODInfoTopFeaturedMaybe.jpg") center center / cover fixed no-repeat !important;
+}
+
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,60,60,.18), transparent 38%),
+    linear-gradient(to bottom, rgba(0,0,0,.25), rgba(0,0,0,.58));
+}
+
+.sticky-hero,
+.section,
+.total-card,
+.bottom-tabs,
+.crop-card,
+.owned-card,
+.mini{
+  background:rgba(9,11,16,.68) !important;
+  backdrop-filter:blur(18px) saturate(125%) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(125%) !important;
+  border:1px solid rgba(255,255,255,.14) !important;
+  box-shadow:0 18px 45px rgba(0,0,0,.34) !important;
+}
+
+.section{
+  background:linear-gradient(145deg, rgba(15,17,24,.72), rgba(7,9,13,.64)) !important;
+}
+
+.total-card{
+  background:rgba(13,15,21,.62) !important;
+}
+
+.item,
+.service-item,
+.timeline-entry{
+  background:transparent !important;
+}
+
+input,
+select,
+textarea{
+  background:rgba(8,10,15,.72) !important;
+  backdrop-filter:blur(10px) !important;
+  -webkit-backdrop-filter:blur(10px) !important;
+}
+
+.thumb{
+  background:rgba(5,6,9,.55) !important;
+}
+
+.bottom-tabs{
+  background:rgba(9,10,14,.72) !important;
+}
+
+@media(max-width:800px){
+  body{
+    background-attachment:scroll !important;
+  }
+}
+
+
+/* v5.9 editable vehicle info + accent color picker */
+.color-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:5px;
+  background:rgba(8,10,15,.72);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;
+  padding:8px 10px;
+}
+
+.color-row input[type="color"]{
+  width:44px !important;
+  height:34px !important;
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+  margin:0 !important;
+}
+
+.color-row span{
+  color:var(--muted);
+  font-size:.9rem;
+}
+
+.btn.red,
+.tab.active,
+.total-card.total-rows .total-row.main b,
+.price,
+.model,
+.due,
+.mini b{
+  color:var(--accent,#ff3b3b) !important;
+}
+
+.btn.red{
+  color:#fff !important;
+  background:linear-gradient(135deg, var(--accent,#ff3b3b), rgba(100,0,0,.9)) !important;
+  border-color:var(--accent,#ff3b3b) !important;
+}
+
+.tab.active{
+  background:rgba(255,255,255,.06) !important;
+}
+
+
+/* v6 editable chassis/engine + background controls */
+body{
+  background:
+    linear-gradient(rgba(4,5,8,calc(1 - (var(--bg-opacity, .65) * .55))), rgba(4,5,8,calc(1 - (var(--bg-opacity, .65) * .45)))),
+    var(--custom-bg) center center / cover fixed no-repeat !important;
+}
+
+#backgroundOpacity{
+  accent-color:var(--accent,#ff3b3b);
+}
+
+.file-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.045);
+  color:var(--text);
+  border-radius:12px;
+  padding:8px 11px;
+  font:inherit;
+  font-weight:500;
+  cursor:pointer;
+  margin:0;
+}
+
+.real-file-input{
+  position:absolute;
+  width:1px;
+  height:1px;
+  opacity:0;
+  pointer-events:none;
+}
+
+
+/* v6.1 FIX: hero image contained, no giant PNG overflow */
+.sticky-hero{
+  overflow:hidden !important;
+}
+
+.sticky-hero .car-card{
+  display:grid !important;
+  grid-template-columns:48% 52% !important;
+  align-items:center !important;
+  gap:8px !important;
+  overflow:hidden !important;
+  min-height:190px !important;
+}
+
+.sticky-hero .car-img{
+  width:100% !important;
+  max-width:100% !important;
+  height:170px !important;
+  max-height:170px !important;
+  object-fit:contain !important;
+  object-position:center center !important;
+  margin:0 !important;
+  transform:none !important;
+  display:block !important;
+}
+
+.sticky-hero .title{
+  min-width:0 !important;
+  overflow:hidden !important;
+  z-index:2 !important;
+}
+
+.sticky-hero .title h1,
+.sticky-hero h1{
+  font-size:2.35rem !important;
+  line-height:.95 !important;
+  white-space:nowrap !important;
+}
+
+.sticky-hero .model{
+  font-size:.9rem !important;
+}
+
+.sticky-hero .tags{
+  gap:8px !important;
+}
+
+.sticky-hero .tag{
+  padding:7px 12px !important;
+  font-size:.9rem !important;
+}
+
+/* desktop/tablet a little larger, still contained */
+@media(min-width:700px){
+  .sticky-hero .car-card{
+    grid-template-columns:42% 58% !important;
+    min-height:210px !important;
+  }
+
+  .sticky-hero .car-img{
+    height:195px !important;
+    max-height:195px !important;
+  }
+
+  .sticky-hero .title h1,
+  .sticky-hero h1{
+    font-size:3rem !important;
+  }
+
+  .sticky-hero .model{
+    font-size:1.1rem !important;
+  }
+}
+
+/* small phones */
+@media(max-width:430px){
+  .sticky-hero .car-card{
+    grid-template-columns:50% 50% !important;
+    min-height:175px !important;
+  }
+
+  .sticky-hero .car-img{
+    height:155px !important;
+    max-height:155px !important;
+  }
+
+  .sticky-hero .title h1,
+  .sticky-hero h1{
+    font-size:2rem !important;
+  }
+
+  .sticky-hero .model{
+    font-size:.82rem !important;
+  }
+
+  .sticky-hero .tag{
+    padding:6px 10px !important;
+    font-size:.8rem !important;
+  }
+}
+
+
+/* v6.2 skeleton category placeholders */
+.empty-cat{
+  display:grid;
+  grid-template-columns:82px 1fr;
+  gap:14px;
+  align-items:center;
+  padding:18px 6px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  cursor:pointer;
+  opacity:.72;
+  transition:opacity .18s ease, transform .18s ease;
+}
+
+.empty-cat:hover{
+  opacity:1;
+  transform:translateX(2px);
+}
+
+.empty-thumb{
+  width:82px;
+  height:76px;
+  border-radius:16px;
+  border:1px dashed rgba(255,255,255,.24);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--muted);
+  background:rgba(255,255,255,.035);
+  font-weight:600;
+}
+
+.empty-cat h3{
+  margin:0;
+  font-size:1.05rem;
+  font-weight:500;
+}
+
+.empty-cat p{
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:.88rem;
+}
+
+
+/* v6.3 stronger background upload controls */
+.bg-control-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:6px;
+}
+
+.bg-control-row .btn{
+  flex:1;
+  min-width:120px;
+}
+
+#bgPhotoInput{
+  display:block !important;
+  width:100% !important;
+  margin-top:8px !important;
+  padding:10px !important;
+  border-radius:12px !important;
+  border:1px dashed rgba(255,255,255,.18) !important;
+  background:rgba(8,10,15,.55) !important;
+  color:var(--muted) !important;
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+<section class="hero sticky-hero">
+  <div class="car-card">
+    <img class="car-img" id="heroImg" alt="Clifford" onclick="document.getElementById('heroPhotoInput').click()" title="Tap to change photo">
+    <div class="title">
+      <h1 id="carNameHero">Clifford</h1>
+      <div class="model" id="carModelHero">2022 Honda Civic Si</div>
+      <div class="tags"><span class="tag" id="chassisTag">FE1</span><span class="tag" id="engineTag">1.5T</span></div>
+      
+      <input id="heroPhotoInput" class="real-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/*" onchange="handlePhotoFile(event,'hero')">
+    </div>
+  </div>
+  <div class="total-card total-rows">
+    <div class="total-row main"><span>Total Spent</span><b id="totalSpent">$0.00</b></div>
+    <div class="total-row"><span>Mods</span><b id="modSpent">$0.00</b></div>
+    <div class="total-row"><span>Services</span><b id="serviceSpent">$0.00</b></div>
+    <div class="total-row muted"><span>Planned</span><b id="plannedSpent">$0.00</b></div>
+  </div>
+</section>
+
+<div class="stage" id="stage">
+  <main id="modsPage" class="page active"></main>
+
+  <main id="servicesPage" class="page">
+    <section class="section">
+      <div class="section-head"><h2>Services</h2><button class="btn red" onclick="addService()">＋ Add</button></div>
+      <div style="margin:14px 0"><label>Current Mileage<input id="currentMileage" type="number" oninput="data.currentMileage=this.value;save();render()"></label></div>
+      <div id="servicesList"></div>
+    </section>
+  </main>
+
+  <main id="overviewPage" class="page">
+    <section class="section">
+      <div class="section-head"><h2>Overview</h2></div>
+      <div class="overview-grid">
+        <div class="mini"><span>Installed Mods</span><b id="installedMods">0</b></div>
+        <div class="mini"><span>Planned / Ordered</span><b id="plannedMods">0</b></div>
+        <div class="mini"><span>Service Alerts</span><b id="serviceAlerts">0</b></div>
+      </div>
+    </section>
+  </main>
+
+  <main id="timelinePage" class="page">
+    <section class="section">
+      <div class="section-head"><h2>Timeline</h2></div>
+      <div class="owned-card timeline-owned">
+        <span>Owned since December 30, 2025</span>
+        <b id="ownedTime">Calculating...</b>
+      </div>
+      <div id="timelineList"></div>
+    </section>
+  </main>
+
+  <main id="settingsPage" class="page">
+    <section class="section">
+      <div class="section-head"><h2>Settings</h2></div>
+      <div class="form">
+        <label>Car Name<input id="settingsCarName" oninput="data.carName=this.value;save();syncSettingsToGarage();renderHero()"></label>
+        <label>Year<input id="settingsCarYear" inputmode="numeric" oninput="data.carYear=this.value;save();syncSettingsToGarage();renderHero()"></label>
+        <label>Make<input id="settingsCarMake" oninput="data.carMake=this.value;save();syncSettingsToGarage();renderHero()"></label>
+        <label>Model<input id="settingsCarModelName" oninput="data.carModelName=this.value;save();syncSettingsToGarage();renderHero()"></label>
+        <label>Chassis Code<input id="settingsChassisCode" oninput="data.chassisCode=this.value;save();syncSettingsToGarage();renderHero()" placeholder="FE1"></label>
+        <label>Engine<input id="settingsEngineCode" oninput="data.engineCode=this.value;save();syncSettingsToGarage();renderHero()" placeholder="1.5T"></label>
+        <label>Purchase Mileage<input id="settingsPurchaseMileage" inputmode="numeric" oninput="data.purchaseMileage=this.value;save();renderTimeline()" placeholder="31987"></label>
+        <label class="span2">Accent Color
+          <div class="color-row">
+            <input id="settingsAccentColor" type="color" oninput="data.accentColor=this.value;save();syncSettingsToGarage();renderHero()">
+            <span>Live theme color</span>
+          </div>
+        </label>
+        <label class="span2">Background Photo
+          <div class="bg-control-row">
+            <button class="btn" type="button" onclick="openBackgroundPicker()">Change Background Photo</button>
+            <button class="btn" type="button" onclick="useHeroAsBackground()">Use Hero</button>
+            <button class="btn danger" type="button" onclick="clearBackground()">Reset</button>
+          </div>
+          <input id="bgPhotoInput" type="file" accept="image/png,image/jpeg,image/webp,image/*" onchange="handleBackgroundFile(event)">
+        </label>
+        <label class="span2">Background URL<input id="backgroundImage" oninput="data.backgroundImage=this.value;save();syncSettingsToGarage();renderHero()" placeholder="optional direct image link"></label>
+        <label class="span2">Background Opacity / Visibility
+          <input id="backgroundOpacity" type="range" min="0.25" max="1" step="0.01" oninput="data.backgroundOpacity=this.value;save();syncSettingsToGarage();renderHero()">
+        </label>
+      </div>
+      <div class="actions" style="justify-content:flex-start;margin-top:16px">
+        <button class="btn" onclick="exportData()">Export Backup</button>
+        <button class="btn" onclick="document.getElementById('importFile').click()">Import Backup</button>
+        <button class="btn danger" onclick="resetToSkeleton()">Reset to Skeleton</button>
+        <button class="btn danger" onclick="resetAll()">Full Reset</button>
+        <input id="importFile" class="hidden" type="file" accept="application/json" onchange="importData(event)">
+      </div>
+    </section>
+  </main>
+</div>
+</div>
+
+<nav class="bottom-tabs">
+  <button class="tab active" onclick="showPage('modsPage',this)"><span class="ico">🔧</span><span class="txt">Mods</span></button>
+  <button class="tab" onclick="showPage('servicesPage',this)"><span class="ico">🛠️</span><span class="txt">Services</span></button>
+  <button class="tab" onclick="showPage('overviewPage',this)"><span class="ico">▥</span><span class="txt">Overview</span></button>
+  <button class="tab" onclick="showPage('timelinePage',this)"><span class="ico">▣</span><span class="txt">Timeline</span></button>
+  <button class="tab" onclick="showPage('settingsPage',this)"><span class="ico">⚙️</span><span class="txt">Settings</span></button>
+</nav>
+
+<script>
+const KEY="clifford_build_log_v3";
+const OWNED_DATE = new Date("2025-12-30T00:00:00");
+const fallbackImg="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='260'%3E%3Crect width='100%25' height='100%25' rx='28' fill='%230b0d11'/%3E%3Cpath d='M62 165 C92 110,145 95,232 110 C292 120,322 146,343 166' fill='none' stroke='%23ff3b3b' stroke-width='9' stroke-linecap='round'/%3E%3Ccircle cx='124' cy='174' r='28' fill='%23090a0d' stroke='%23686d76' stroke-width='7'/%3E%3Ccircle cx='282' cy='174' r='28' fill='%23090a0d' stroke='%23686d76' stroke-width='7'/%3E%3Ctext x='200' y='72' fill='white' text-anchor='middle' font-family='Arial' font-size='30' font-weight='800'%3EClifford%3C/text%3E%3C/svg%3E";
+
+let data={
+  carName:"Clifford",
+  carModel:"2022 Honda Civic Si",
+  carYear:"2022",
+  carMake:"Honda",
+  carModelName:"Civic Si",
+  accentColor:"#ff3b3b",
+  chassisCode:"FE1",
+  engineCode:"1.5T",
+  backgroundImage:"",
+  backgroundOpacity:"0.65",
+  carImage:"",
+  currentMileage:"",
+  purchaseMileage:"31987",
+  goals:"300whp daily, cleaner handling, red/black cosmetic theme.",
+  mods:[
+    {category:"Cosmetics",name:"Synth Carbon Interior Ambient Lighting Kit",brand:"Synth Carbon",price:"129.99",status:"Installed",date:"",image:"",notes:""},
+    {category:"Cosmetics",name:"Black Door Handles",brand:"",price:"89.99",status:"Installed",date:"",image:"",notes:""},
+    {category:"Cosmetics",name:"Yofer V2 Side Skirts",brand:"Yofer",price:"299.99",status:"Installed",date:"",image:"",notes:""},
+    {category:"Cosmetics",name:"Yofer Rear Diffuser",brand:"Yofer",price:"279.99",status:"Installed",date:"",image:"",notes:""},
+    {category:"Performance",name:"Invidia N1 Catback Exhaust",brand:"Invidia",price:"687",status:"Installed",date:"",image:"",notes:""},
+    {category:"Performance",name:"Street Driven Performance Catless Downpipe",brand:"Street Driven Performance",price:"399",status:"Installed",date:"",image:"",notes:""},
+    {category:"Performance",name:"KTuner V2",brand:"KTuner",price:"",status:"Installed",date:"",image:"",notes:""},
+    {category:"Performance",name:"Phearable 1.5R Tune",brand:"Phearable",price:"",status:"Installed",date:"",image:"",notes:"93 octane"},
+    {category:"Handling",name:"Front Sway Bar",brand:"",price:"",status:"Planned",date:"",image:"",notes:""},
+    {category:"Handling",name:"Rear Sway Bar",brand:"",price:"",status:"Planned",date:"",image:"",notes:""}
+  ],
+  services:[
+    {name:"Engine Oil Change",date:"",mileage:"",intervalMiles:"5000",intervalMonths:"6",cost:"",notes:""},
+    {name:"Transmission Fluid Change",date:"",mileage:"",intervalMiles:"30000",intervalMonths:"36",cost:"",notes:""},
+    {name:"Brake Pads",date:"",mileage:"",intervalMiles:"30000",intervalMonths:"",cost:"",notes:""},
+    {name:"Brake Rotors",date:"",mileage:"",intervalMiles:"60000",intervalMonths:"",cost:"",notes:""},
+    {name:"Tire Rotation",date:"",mileage:"",intervalMiles:"5000",intervalMonths:"6",cost:"",notes:""}
+  ]
+};
+
+let sortPrefs = {};
+
+function migrate(old){
+  if(!old)return;
+  data = {...data, ...old};
+  if(!Array.isArray(data.mods))data.mods=[];
+  if(!Array.isArray(data.services))data.services=[];
+  if(!data.purchaseMileage) data.purchaseMileage = "31987";
+  if(!data.carYear) data.carYear = "2022";
+  if(!data.carMake) data.carMake = "Honda";
+  if(!data.carModelName) data.carModelName = "Civic Si";
+  if(!data.accentColor) data.accentColor = "#ff3b3b";
+  if(!data.chassisCode) data.chassisCode = "FE1";
+  if(!data.engineCode) data.engineCode = "1.5T";
+  if(!data.backgroundOpacity) data.backgroundOpacity = "0.65";
+  if(!("backgroundImage" in data)) data.backgroundImage = "";
+}
+function load(){
+  try{
+    const v3=localStorage.getItem(KEY);
+    const v2=localStorage.getItem("clifford_build_log_v2");
+    const v1=localStorage.getItem("clifford_build_log_v1");
+    if(v3)migrate(JSON.parse(v3));
+    else if(v2)migrate(JSON.parse(v2));
+    else if(v1)migrate(JSON.parse(v1));
+  }catch(e){}
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(data))}
+function money(v){const n=parseFloat(v);return isNaN(n)?"$0.00":n.toLocaleString(undefined,{style:"currency",currency:"USD"})}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function imgFor(m){return m.image&&m.image.trim()?m.image.trim():fallbackImg}
+
+function updateOwnedTime(){
+  const el = document.getElementById("ownedTime");
+  if(!el) return;
+
+  const now = new Date();
+  let diff = Math.max(0, now - OWNED_DATE);
+  const daysTotal = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+
+  el.innerHTML = `${ownedMonthsDays()}<br><span style="color:var(--muted);font-size:.9rem">${daysTotal} days • ${hours} hr • ${mins} min</span>`;
+}
+
+function renderHero(){
+  if(!data.carYear) data.carYear = "2022";
+  if(!data.carMake) data.carMake = "Honda";
+  if(!data.carModelName) data.carModelName = "Civic Si";
+  if(!data.accentColor) data.accentColor = "#ff3b3b";
+  if(!data.chassisCode) data.chassisCode = "FE1";
+  if(!data.engineCode) data.engineCode = "1.5T";
+  if(!data.backgroundOpacity) data.backgroundOpacity = "0.65";
+
+  data.carModel = `${data.carYear} ${data.carMake} ${data.carModelName}`.trim();
+  document.documentElement.style.setProperty("--accent", data.accentColor);
+  document.documentElement.style.setProperty("--bg-opacity", data.backgroundOpacity || "0.65");
+  const bg = data.backgroundImage && data.backgroundImage.trim()
+    ? `url("${data.backgroundImage}")`
+    : `url("https://tailofthedragon.com/wp-content/uploads/2025/06/TODInfoTopFeaturedMaybe.jpg")`;
+  document.documentElement.style.setProperty("--custom-bg", bg);
+
+  carNameHero.textContent=data.carName||"Clifford";
+  carModelHero.textContent=data.carModel||"2022 Honda Civic Si";
+  heroImg.src=data.carImage||fallbackImg;
+  const chassis = document.getElementById("chassisTag");
+  const engine = document.getElementById("engineTag");
+  if(chassis) chassis.textContent = data.chassisCode || "FE1";
+  if(engine) engine.textContent = data.engineCode || "1.5T";
+
+  ["carName","carModel","carImage","goals","carYear","carMake","carModelName","accentColor","chassisCode","engineCode","backgroundImage","backgroundOpacity"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.value=data[id]||"";
+  });
+}
+function sortedItemsForCategory(cat){
+  const pref = sortPrefs[cat] || "default";
+  const items = data.mods.map((m,i)=>({m,i})).filter(x=>(x.m.category||"Uncategorized")===cat);
+
+  if(pref === "priceHigh") items.sort((a,b)=>(parseFloat(b.m.price)||0)-(parseFloat(a.m.price)||0));
+  if(pref === "priceLow") items.sort((a,b)=>(parseFloat(a.m.price)||0)-(parseFloat(b.m.price)||0));
+  if(pref === "dateAsc") items.sort((a,b)=>(a.m.date||"9999-99-99").localeCompare(b.m.date||"9999-99-99"));
+  if(pref === "dateDesc") items.sort((a,b)=>(b.m.date||"0000-00-00").localeCompare(a.m.date||"0000-00-00"));
+
+  return items;
+}
+function setSort(cat,val){
+  sortPrefs[cat]=val;
+  renderMods();
+}
+function categoryPlannedTotal(cat){
+  return data.mods
+    .filter(m=>(m.category||"Uncategorized")===cat && m.status==="Planned")
+    .reduce((a,m)=>a+(parseFloat(m.price)||0),0);
+}
+function renderMods(){
+  const baseCats=["Cosmetics","Performance","Handling"];
+  const cats=[...new Set([...baseCats, ...data.mods.map(m=>m.category||"Uncategorized")])];
+  modsPage.innerHTML=cats.map(cat=>{
+    const planned = categoryPlannedTotal(cat);
+    const selected = sortPrefs[cat] || "default";
+    return `<section class="section">
+      <div class="section-head">
+        <h2>${esc(cat)}</h2>
+        <div class="section-controls">
+          <select class="sort-select" onchange="setSort('${esc(cat)}',this.value)">
+            <option value="default" ${selected==="default"?"selected":""}>Sort By</option>
+            <option value="priceHigh" ${selected==="priceHigh"?"selected":""}>Price High → Low</option>
+            <option value="priceLow" ${selected==="priceLow"?"selected":""}>Price Low → High</option>
+            <option value="dateAsc" ${selected==="dateAsc"?"selected":""}>Install Date ↑</option>
+            <option value="dateDesc" ${selected==="dateDesc"?"selected":""}>Install Date ↓</option>
+          </select>
+          <button class="btn red" onclick="addMod('${esc(cat)}')">＋ Add Item</button>
+        </div>
+      </div>
+      ${planned>0?`<div class="planned-line">Planned in this category: <b>${money(planned)}</b></div>`:""}
+      ${sortedItemsForCategory(cat).length
+        ? sortedItemsForCategory(cat).map(({m,i})=>itemHTML(m,i)).join("")
+        : `<div class="empty-cat" onclick="addMod('${esc(cat)}')">
+            <div class="empty-thumb">N/A</div>
+            <div>
+              <h3>N/A Placeholder</h3>
+              <p>Tap to add first item</p>
+            </div>
+          </div>`}
+    </section>`;
+  }).join("");
+  initSwipe();
+}
+function itemHTML(m,i){
+  return `<div class="swipe-wrap" data-type="mod" data-index="${i}">
+    <div class="delete-bg" onclick="deleteMod(${i})">Delete</div>
+    <div class="item swipe-target" onclick="toggleEditor(${i})">
+      <img class="thumb" src="${esc(imgFor(m))}" onerror="this.src=fallbackImg" onclick="event.stopPropagation(); const el=document.getElementById('modPhoto-${i}'); if(el) el.click();" title="Tap to change photo">
+      <div class="info"><h3>${esc(m.name||"New Item")}</h3><div class="meta"><span class="pill">${esc(m.brand||"No brand")}</span><span class="pill">${esc(m.status||"Planned")}</span></div></div>
+      <div class="price">${money(m.price)}</div><div class="chev">›</div>
+      <div class="editor" id="editor-${i}" onclick="event.stopPropagation()">
+        <div class="form">
+          <label>Category<input value="${esc(m.category)}" oninput="data.mods[${i}].category=this.value;save()"></label>
+          <label class="span2">Name<input value="${esc(m.name)}" oninput="data.mods[${i}].name=this.value;save()"></label>
+          <label>Price<input type="number" value="${esc(m.price)}" oninput="data.mods[${i}].price=this.value;save();renderTotals()"></label>
+          <label>Brand<input value="${esc(m.brand)}" oninput="data.mods[${i}].brand=this.value;save()"></label>
+          <label>Status<select onchange="data.mods[${i}].status=this.value;save();renderTotals()">${["Installed","Ordered","Planned"].map(s=>`<option ${m.status===s?"selected":""}>${s}</option>`).join("")}</select></label>
+          <label>Date<input type="date" value="${esc(m.date)}" oninput="data.mods[${i}].date=this.value;save();renderTimeline()"></label>
+          <label class="span2">Image URL / Backup<input value="${esc(m.image)}" oninput="data.mods[${i}].image=this.value;save()" placeholder="optional direct image link"></label>
+          <label>Photo
+            <label class="file-btn" for="modPhoto-${i}" onclick="event.stopPropagation()">Choose</label>
+            <input id="modPhoto-${i}" class="real-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/*" onchange="handlePhotoFile(event,'mod',${i})">
+          </label>
+          <label class="full">Notes<textarea oninput="data.mods[${i}].notes=this.value;save()">${esc(m.notes)}</textarea></label>
+        </div>
+        <div class="actions"><button class="btn" onclick="render()">Done</button><button class="btn danger" onclick="deleteMod(${i})">Delete</button></div>
+      </div>
+    </div>
+  </div>`;
+}
+function toggleEditor(i){document.getElementById(`editor-${i}`)?.classList.toggle("open")}
+function addMod(cat="Cosmetics"){data.mods.push({category:cat,name:"New Item",brand:"",price:"",status:"Planned",date:"",image:"",notes:""});save();render()}
+function deleteMod(i){data.mods.splice(i,1);save();render()}
+
+function dueInfo(s){
+  const current=parseInt(data.currentMileage||"0"),done=parseInt(s.mileage||"0"),intv=parseInt(s.intervalMiles||"0");
+  if(!done||!intv||!current)return{text:"Add mileage",cls:"warn",next:"—"};
+  const next=done+intv,left=next-current;
+  if(left<=0)return{text:`Overdue ${Math.abs(left).toLocaleString()} mi`,cls:"bad",next:`${next.toLocaleString()} mi`};
+  if(left<=1000)return{text:`${left.toLocaleString()} mi left`,cls:"warn",next:`${next.toLocaleString()} mi`};
+  return{text:`${left.toLocaleString()} mi left`,cls:"good",next:`${next.toLocaleString()} mi`};
+}
+function renderServices(){
+  currentMileage.value=data.currentMileage||"";
+  servicesList.innerHTML=data.services.map((s,i)=>{const d=dueInfo(s);return `<div class="swipe-wrap" data-type="service" data-index="${i}">
+    <div class="delete-bg" onclick="deleteService(${i})">Delete</div>
+    <div class="service-item swipe-target">
+      <div><div class="service-title">${esc(s.name||"Service")}</div><div class="service-sub">Done: ${esc(s.mileage||"—")} mi • Next: ${d.next} • Cost: ${money(s.cost)}</div>
+        <div class="editor open" style="display:block;margin-top:10px">
+          <div class="form">
+            <label>Service<input value="${esc(s.name)}" oninput="data.services[${i}].name=this.value;save();renderTotals()"></label>
+            <label>Date<input type="date" value="${esc(s.date)}" oninput="data.services[${i}].date=this.value;save();renderTimeline()"></label>
+            <label>Mileage Done<input type="number" value="${esc(s.mileage)}" oninput="data.services[${i}].mileage=this.value;save();render()"></label>
+            <label>Cost<input type="number" value="${esc(s.cost)}" oninput="data.services[${i}].cost=this.value;save();renderTotals()"></label>
+            <label>Interval Miles<input type="number" value="${esc(s.intervalMiles)}" oninput="data.services[${i}].intervalMiles=this.value;save();render()"></label>
+            <label>Interval Months<input type="number" value="${esc(s.intervalMonths)}" oninput="data.services[${i}].intervalMonths=this.value;save()"></label>
+            <label class="span2">Notes<input value="${esc(s.notes)}" oninput="data.services[${i}].notes=this.value;save()"></label>
+          </div>
+          <div class="actions"><button class="btn danger" onclick="deleteService(${i})">Delete</button></div>
+        </div>
+      </div><div class="due ${d.cls}">${d.text}</div>
+    </div>
+  </div>`}).join("");
+  initSwipe();
+}
+function addService(){data.services.push({name:"New Service",date:"",mileage:"",intervalMiles:"",intervalMonths:"",cost:"",notes:""});save();render()}
+function deleteService(i){data.services.splice(i,1);save();render()}
+
+function renderTotals(){
+  const modPaid=data.mods
+    .filter(m=>m.status!=="Planned")
+    .reduce((a,m)=>a+(parseFloat(m.price)||0),0);
+  const planned=data.mods
+    .filter(m=>m.status==="Planned")
+    .reduce((a,m)=>a+(parseFloat(m.price)||0),0);
+  const svc=data.services.reduce((a,s)=>a+(parseFloat(s.cost)||0),0);
+
+  totalSpent.textContent=money(modPaid+svc);
+  modSpent.textContent=money(modPaid);
+  serviceSpent.textContent=money(svc);
+  if(document.getElementById("plannedSpent")) plannedSpent.textContent=money(planned);
+
+  installedMods.textContent=data.mods.filter(m=>m.status==="Installed").length;
+  plannedMods.textContent=data.mods.filter(m=>m.status==="Planned"||m.status==="Ordered").length;
+  serviceAlerts.textContent=data.services.filter(s=>["bad","warn"].includes(dueInfo(s).cls)).length;
+}
+function formatDate(d){
+  try{return new Date(d+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}catch(e){return d}
+}
+function ownedMonthsDays(){
+  const now = new Date();
+  let years = now.getFullYear() - OWNED_DATE.getFullYear();
+  let months = now.getMonth() - OWNED_DATE.getMonth();
+  let days = now.getDate() - OWNED_DATE.getDate();
+
+  if(days < 0){
+    const prevMonthDays = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+    days += prevMonthDays;
+    months--;
+  }
+  if(months < 0){
+    months += 12;
+    years--;
+  }
+
+  const parts = [];
+  if(years > 0) parts.push(`${years} yr${years === 1 ? "" : "s"}`);
+  if(months > 0) parts.push(`${months} month${months === 1 ? "" : "s"}`);
+  parts.push(`${days} day${days === 1 ? "" : "s"}`);
+  return parts.join(" ");
+}
+function renderTimeline(){
+  const purchase = {date:"2025-12-30",title:"Got Clifford",sub:`First day with the car • ${Number(data.purchaseMileage || 31987).toLocaleString()} mi`,type:"start",locked:true};
+  const events=[
+    purchase,
+    ...data.mods.filter(m=>m.date).map(m=>({date:m.date,title:m.name,sub:m.category,type:"mod"})),
+    ...data.services.filter(s=>s.date).map(s=>({date:s.date,title:s.name,sub:`${s.mileage||"—"} mi`,type:"service"}))
+  ].sort((a,b)=>b.date.localeCompare(a.date));
+  timelineList.innerHTML=events.map(e=>`<div class="timeline-entry">
+    <div class="dot"></div>
+    <div><div class="timeline-title">${esc(e.title)}</div><div class="timeline-sub">${esc(e.sub)}</div></div>
+    <div class="timeline-date">${formatDate(e.date)}</div>
+  </div>`).join("");
+}
+
+function ensureKnownHistory(){
+  if(!Array.isArray(data.services)) data.services = [];
+
+  const known = [
+    {
+      name:"Oil and Filter Change + Brakes Checked",
+      date:"2026-03-28",
+      mileage:"35000",
+      intervalMiles:"5000",
+      intervalMonths:"6",
+      cost:"",
+      notes:"Self-Service (DIY): Oil and filter changed; brakes checked"
+    },
+    {
+      name:"Tire Rotation + Brakes Checked",
+      date:"2026-04-06",
+      mileage:"35295",
+      intervalMiles:"5000",
+      intervalMonths:"6",
+      cost:"",
+      notes:"Self-Service (DIY): Tires rotated; brakes checked"
+    }
+  ];
+
+  known.forEach(k=>{
+    const exists = data.services.some(s => s.date === k.date && String(s.mileage) === String(k.mileage) && s.name === k.name);
+    if(!exists) data.services.push(k);
+  });
+}
+
+
+function syncSettingsToGarage(){
+  const pairs = [
+    ["settingsCarName","carName"],
+    ["settingsCarYear","carYear"],
+    ["settingsCarMake","carMake"],
+    ["settingsCarModelName","carModelName"],
+    ["settingsAccentColor","accentColor"],
+    ["settingsChassisCode","chassisCode"],
+    ["settingsEngineCode","engineCode"],
+    ["settingsPurchaseMileage","purchaseMileage"],
+    ["backgroundImage","backgroundImage"],
+    ["backgroundOpacity","backgroundOpacity"]
+  ];
+  pairs.forEach(([sid,key])=>{
+    const s=document.getElementById(sid);
+    const g=document.getElementById(key);
+    if(s) s.value=data[key]||"";
+    if(g) g.value=data[key]||"";
+  });
+  const preview=document.getElementById("accentPreview");
+  if(preview) preview.style.color=data.accentColor||"#ff3b3b";
+}
+function render(){ensureKnownHistory();renderHero();syncSettingsToGarage();renderMods();renderServices();renderTotals();renderTimeline();updateOwnedTime()}
+
+function showPage(id,btn){
+  const current=document.querySelector(".page.active");
+  const next=document.getElementById(id);
+  if(current===next)return;
+  if(current){
+    current.classList.remove("active");
+    current.classList.add("leaving");
+    setTimeout(()=>current.classList.remove("leaving"),230);
+  }
+  next.classList.add("active");
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  btn.classList.add("active");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function initSwipe(){
+  document.querySelectorAll(".swipe-wrap").forEach(wrap=>{
+    const target=wrap.querySelector(".swipe-target");
+    if(!target || target.dataset.swipeReady)return;
+    target.dataset.swipeReady="1";
+    let startX=0,startY=0,dx=0,dragging=false;
+    target.addEventListener("pointerdown",e=>{
+      if(e.target.closest("input,textarea,select,button"))return;
+      startX=e.clientX; startY=e.clientY; dx=0; dragging=true;
+      target.setPointerCapture(e.pointerId);
+    });
+    target.addEventListener("pointermove",e=>{
+      if(!dragging)return;
+      dx=e.clientX-startX;
+      const dy=Math.abs(e.clientY-startY);
+      if(dy>35)return;
+      if(dx<0){
+        target.style.transform=`translateX(${Math.max(dx,-112)}px)`;
+      }
+    });
+    target.addEventListener("pointerup",e=>{
+      if(!dragging)return;
+      dragging=false;
+      target.style.transform="";
+      if(dx<-55){
+        target.classList.add("swiped");
+        wrap.classList.add("show-delete");
+      } else if(dx>25){
+        target.classList.remove("swiped");
+        wrap.classList.remove("show-delete");
+      } else if(!target.classList.contains("swiped")){
+        wrap.classList.remove("show-delete");
+      }
+    });
+  });
+}
+
+
+
+
+
+
+function pickPhoto(type, index=null){
+  if(type === "hero"){
+    const input = document.getElementById("heroPhotoInput");
+    if(input) input.click();
+    return;
+  }
+  if(type === "mod"){
+    const input = document.getElementById(`modPhoto-${index}`);
+    if(input) input.click();
+  }
+}
+
+function handlePhotoFile(event, type, index=null){
+  const input = event.target;
+  const file = input.files && input.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    const rawDataUrl = e.target.result || "";
+    const name = (file.name || "").toLowerCase();
+    const mime = (file.type || "").toLowerCase();
+
+    // iPhone sometimes gives weird/blank MIME types. Detect PNG multiple ways.
+    const looksTransparentSafe =
+      type === "hero" ||
+      mime.includes("png") ||
+      name.endsWith(".png") ||
+      String(rawDataUrl).startsWith("data:image/png");
+
+    const img = new Image();
+
+    img.onload = function(){
+      // Smaller max size avoids iPhone/localStorage choking on large transparent PNGs.
+      const maxSide = type === "hero" ? 1200 : 900;
+      let w = img.naturalWidth || img.width;
+      let h = img.naturalHeight || img.height;
+
+      if(w > maxSide || h > maxSide){
+        const ratio = Math.min(maxSide / w, maxSide / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d", {alpha:true});
+
+      // Never flatten hero images. This keeps transparent PNGs transparent.
+      ctx.clearRect(0,0,w,h);
+
+      // Only non-hero/non-transparent images get a black backing.
+      if(!looksTransparentSafe){
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0,0,w,h);
+      }
+
+      ctx.drawImage(img, 0, 0, w, h);
+
+      // WebP keeps transparency and is way smaller than PNG on iPhone/Safari.
+      let finalDataUrl = "";
+      try{
+        finalDataUrl = looksTransparentSafe ? canvas.toDataURL("image/webp", 0.92) : canvas.toDataURL("image/jpeg", 0.9);
+        // Safari fallback if WebP export is unsupported.
+        if(looksTransparentSafe && !finalDataUrl.startsWith("data:image/webp")){
+          finalDataUrl = canvas.toDataURL("image/png");
+        }
+      }catch(err){
+        finalDataUrl = looksTransparentSafe ? canvas.toDataURL("image/png") : canvas.toDataURL("image/jpeg", 0.9);
+      }
+
+      // If it is still huge, try a smaller transparent export.
+      function trySave(dataUrl){
+        if(type === "hero"){
+          data.carImage = dataUrl;
+        }else if(type === "mod" && data.mods[index]){
+          data.mods[index].image = dataUrl;
+        }
+        save();
+        render();
+      }
+
+      try{
+        trySave(finalDataUrl);
+      }catch(err){
+        try{
+          const small = document.createElement("canvas");
+          const smallMax = type === "hero" ? 800 : 650;
+          const ratio = Math.min(1, smallMax / w, smallMax / h);
+          small.width = Math.round(w * ratio);
+          small.height = Math.round(h * ratio);
+          const sctx = small.getContext("2d", {alpha:true});
+          sctx.clearRect(0,0,small.width,small.height);
+          if(!looksTransparentSafe){
+            sctx.fillStyle = "#000";
+            sctx.fillRect(0,0,small.width,small.height);
+          }
+          sctx.drawImage(img,0,0,small.width,small.height);
+
+          let smallerDataUrl = looksTransparentSafe ? small.toDataURL("image/webp",0.86) : small.toDataURL("image/jpeg",0.86);
+          if(looksTransparentSafe && !smallerDataUrl.startsWith("data:image/webp")){
+            smallerDataUrl = small.toDataURL("image/png");
+          }
+          trySave(smallerDataUrl);
+        }catch(err2){
+          alert("That transparent PNG is too large to save inside this offline page. Try exporting it smaller, around 1000px wide.");
+        }
+      }
+
+      input.value = "";
+    };
+
+    img.onerror = function(){
+      // Direct raw fallback for PNGs that Safari refuses to decode through canvas.
+      try{
+        if(looksTransparentSafe){
+          if(type === "hero"){
+            data.carImage = rawDataUrl;
+          }else if(type === "mod" && data.mods[index]){
+            data.mods[index].image = rawDataUrl;
+          }
+          save();
+          render();
+        }else{
+          alert("Could not load that image. Try PNG, JPEG, or WebP.");
+        }
+      }catch(err){
+        alert("That image is too large to save. Try a smaller transparent PNG.");
+      }
+      input.value = "";
+    };
+
+    img.src = rawDataUrl;
+  };
+
+  reader.onerror = function(){
+    alert("Could not read that photo. Try choosing it from Files instead of Photos, especially for transparent PNGs.");
+  };
+
+  reader.readAsDataURL(file);
+}
+
+
+
+function openBackgroundPicker(){
+  const input = document.getElementById("bgPhotoInput");
+  if(!input){
+    alert("Background photo input is missing. Reload the page and try again.");
+    return;
+  }
+  input.value = "";
+  input.click();
+}
+
+function useHeroAsBackground(){
+  if(!data.carImage){
+    alert("Add a hero photo first, then use it as the background.");
+    return;
+  }
+  data.backgroundImage = data.carImage;
+  save();
+  syncSettingsToGarage();
+  renderHero();
+}
+
+function clearBackground(){
+  data.backgroundImage = "";
+  save();
+  syncSettingsToGarage();
+  renderHero();
+}
+
+function handleBackgroundFile(event){
+  const input = event.target;
+  const file = input.files && input.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    const rawDataUrl = e.target.result;
+    const img = new Image();
+
+    img.onload = function(){
+      const maxSide = 1200;
+      let w = img.naturalWidth || img.width;
+      let h = img.naturalHeight || img.height;
+
+      if(w > maxSide || h > maxSide){
+        const ratio = Math.min(maxSide / w, maxSide / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d", {alpha:false});
+
+      ctx.fillStyle = "#050608";
+      ctx.fillRect(0,0,w,h);
+      ctx.drawImage(img,0,0,w,h);
+
+      function applyAndSave(dataUrl){
+        data.backgroundImage = dataUrl;
+        save();
+        syncSettingsToGarage();
+        renderHero();
+      }
+
+      try{
+        applyAndSave(canvas.toDataURL("image/jpeg",0.72));
+      }catch(err){
+        try{
+          const small = document.createElement("canvas");
+          const smallMax = 850;
+          const ratio = Math.min(1, smallMax / w, smallMax / h);
+          small.width = Math.round(w * ratio);
+          small.height = Math.round(h * ratio);
+          const sctx = small.getContext("2d", {alpha:false});
+          sctx.fillStyle = "#050608";
+          sctx.fillRect(0,0,small.width,small.height);
+          sctx.drawImage(img,0,0,small.width,small.height);
+          applyAndSave(small.toDataURL("image/jpeg",0.66));
+        }catch(err2){
+          alert("Your phone is blocking or storage-limiting this background image. Try opening the HTML in Safari, or use the Background URL field.");
+        }
+      }
+
+      input.value = "";
+    };
+
+    img.onerror = function(){
+      alert("Could not load that background image. Try a normal screenshot/photo or use the Background URL field.");
+      input.value = "";
+    };
+
+    img.src = rawDataUrl;
+  };
+
+  reader.onerror = function(){
+    alert("Your browser blocked reading the image. Try opening the HTML in Safari or choose from Files instead of Photos.");
+  };
+
+  reader.readAsDataURL(file);
+}
+
+
+
+function exportData(){
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="clifford-build-log-backup.json";a.click();
+}
+function importData(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{data=JSON.parse(r.result);save();render()}catch(err){alert("Bad backup file")}};
+  r.readAsText(f);
+}
+function resetToSkeleton(){
+  if(!confirm("Reset mods/services to skeleton placeholders? This keeps your car info, theme, and hero photo.")) return;
+
+  data.mods = [
+    {category:"Cosmetics",name:"N/A",brand:"",price:"",status:"Planned",date:"",image:"",notes:""},
+    {category:"Performance",name:"N/A",brand:"",price:"",status:"Planned",date:"",image:"",notes:""},
+    {category:"Handling",name:"N/A",brand:"",price:"",status:"Planned",date:"",image:"",notes:""}
+  ];
+
+  data.services = [
+    {name:"Engine Oil Change",date:"",mileage:"",intervalMiles:"5000",intervalMonths:"6",cost:"",notes:""},
+    {name:"Transmission Fluid Change",date:"",mileage:"",intervalMiles:"30000",intervalMonths:"36",cost:"",notes:""},
+    {name:"Brake Pads / Rotors",date:"",mileage:"",intervalMiles:"30000",intervalMonths:"",cost:"",notes:""}
+  ];
+
+  save();
+  render();
+}
+
+function resetAll(){if(confirm("Full reset everything? This clears saved data on this device.")){localStorage.removeItem(KEY);location.reload()}}
+
+load();
+render();
+setInterval(()=>{updateOwnedTime(); renderTimeline();},30000);
+</script>
+</body>
+</html>
