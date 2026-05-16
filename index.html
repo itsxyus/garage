@@ -199,6 +199,75 @@ input[type=range]{accent-color:var(--accent)}
   .timeline-entry{grid-template-columns:15px 1fr}
   .timeline-date{grid-column:2}
 }
+
+/* v1.2 garage modal + clickable car cards */
+.car-tile,
+.add-tile{
+  border:1px solid var(--line);
+  color:var(--text);
+  text-align:left;
+  width:100%;
+}
+
+.car-tile{
+  cursor:pointer;
+  transition:transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.car-tile:hover,
+.add-tile:hover{
+  transform:translateY(-2px);
+  border-color:color-mix(in srgb, var(--accent) 45%, rgba(255,255,255,.16));
+}
+
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  z-index:650;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(0,0,0,.52);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  animation:fadeIn .25s ease both;
+}
+
+.modal-card{
+  width:min(620px,100%);
+  padding:18px;
+  animation:popIn .28s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.modal-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.modal-head h2{
+  margin:0;
+  font-size:1.55rem;
+  font-weight:600;
+  letter-spacing:-.035em;
+}
+
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:14px;
+}
+
+@media(max-width:720px){
+  .modal-card{
+    max-height:88vh;
+    overflow:auto;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -213,6 +282,30 @@ input[type=range]{accent-color:var(--accent)}
       <button class="btn" onclick="cloudSignUp()">Sign Up</button>
     </div>
     <p id="authStatus" class="status">Cloud sync ready.</p>
+  </div>
+</div>
+
+<div id="carModal" class="modal-overlay hidden">
+  <div class="modal-card glass">
+    <div class="modal-head">
+      <h2 id="carModalTitle">Add Your Car</h2>
+      <button class="btn" onclick="closeCarModal()" type="button">Cancel</button>
+    </div>
+
+    <div class="form-grid">
+      <label>Car Name<input id="modalCarName" placeholder="Clifford"></label>
+      <label>Year<input id="modalYear" inputmode="numeric" placeholder="2022"></label>
+      <label>Make<input id="modalMake" placeholder="Honda"></label>
+      <label>Model<input id="modalModel" placeholder="Civic Si"></label>
+      <label>Chassis Code<input id="modalChassis" placeholder="FE1"></label>
+      <label>Engine<input id="modalEngine" placeholder="1.5T"></label>
+      <label>Purchase Date<input id="modalPurchaseDate" type="date"></label>
+      <label>Purchase Mileage<input id="modalPurchaseMileage" inputmode="numeric" placeholder="31987"></label>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn red" onclick="saveCarFromModal()" type="button">Save Car</button>
+    </div>
   </div>
 </div>
 
@@ -307,6 +400,7 @@ input[type=range]{accent-color:var(--accent)}
           <label class="full">Goals<textarea id="setGoals" oninput="activeCar().goals=this.value;save()"></textarea></label>
         </div>
         <div class="bg-control-row" style="margin-top:14px">
+          <button class="btn" onclick="openEditCarModal()" type="button">Edit Car Info</button>
           <button class="btn danger" onclick="deletePurchaseEntry()">Delete Purchase Timeline Entry</button>
           <button class="btn danger" onclick="deleteActiveCar()">Delete This Car</button>
           <button class="btn" onclick="cloudSaveNow()">Save to Cloud</button>
@@ -496,29 +590,106 @@ function render(){
 }
 function renderGarage(){
   if(!state || !Array.isArray(state.cars)) state=normalizeState(state);
-  garageList.innerHTML=state.cars.map(c=>`<div class="car-tile glass" onclick="openCar('${c.id}')">
-    <img src="${esc(c.carImage||fallbackImg)}" onerror="this.src=fallbackImg">
-    <h2>${esc(c.name||"Unnamed Car")}</h2>
-    <p>${esc([c.year,c.make,c.model].filter(Boolean).join(" ")||"No vehicle info yet")}</p>
-  </div>`).join("") + `<div class="add-tile glass" onclick="addCar()"><div><b>＋ Add Your Car</b><span>${state.cars.length?"Add Another":"Start your garage"}</span></div></div>`;
+
+  const carTiles = state.cars.map(c=>`
+    <button class="car-tile glass" type="button" onclick="openCar('${c.id}')">
+      <img src="${esc(c.carImage||fallbackImg)}" onerror="this.src=fallbackImg">
+      <h2>${esc(c.name||"Unnamed Car")}</h2>
+      <p>${esc([c.year,c.make,c.model].filter(Boolean).join(" ")||"No vehicle info yet")}</p>
+    </button>
+  `).join("");
+
+  const addTile = `
+    <button class="add-tile glass" type="button" onclick="openAddCarModal()">
+      <div><b>＋ Add Your Car</b><span>${state.cars.length ? "Add Another" : "Start your garage"}</span></div>
+    </button>
+  `;
+
+  garageList.innerHTML = carTiles + addTile;
 }
-function addCar(){
+let editingCarId = null;
+
+function openAddCarModal(){
+  editingCarId = null;
+  carModalTitle.textContent = "Add Your Car";
+  modalCarName.value = "";
+  modalYear.value = "";
+  modalMake.value = "";
+  modalModel.value = "";
+  modalChassis.value = "";
+  modalEngine.value = "";
+  modalPurchaseDate.value = "";
+  modalPurchaseMileage.value = "";
+  carModal.classList.remove("hidden");
+}
+
+function openEditCarModal(){
+  const c = activeCar();
+  if(!c) return;
+  editingCarId = c.id;
+  carModalTitle.textContent = "Edit Car Info";
+  modalCarName.value = c.name || "";
+  modalYear.value = c.year || "";
+  modalMake.value = c.make || "";
+  modalModel.value = c.model || "";
+  modalChassis.value = c.chassis || "";
+  modalEngine.value = c.engine || "";
+  modalPurchaseDate.value = c.purchaseDate || "";
+  modalPurchaseMileage.value = c.purchaseMileage || "";
+  carModal.classList.remove("hidden");
+}
+
+function closeCarModal(){
+  carModal.classList.add("hidden");
+}
+
+function saveCarFromModal(){
   if(!state || !Array.isArray(state.cars)) state=normalizeState(state);
-  const c=blankCar();
-  state.cars.push(c);
-  state.activeCarId=c.id;
-  localStorage.setItem(KEY,JSON.stringify(state));
-  scheduleCloudSave();
+
+  let c = editingCarId ? state.cars.find(x=>x.id===editingCarId) : null;
+  if(!c){
+    c = blankCar();
+    state.cars.push(c);
+  }
+
+  c.name = modalCarName.value.trim() || "New Car";
+  c.year = modalYear.value.trim();
+  c.make = modalMake.value.trim();
+  c.model = modalModel.value.trim();
+  c.chassis = modalChassis.value.trim() || "N/A";
+  c.engine = modalEngine.value.trim() || "N/A";
+  c.purchaseDate = modalPurchaseDate.value;
+  c.purchaseMileage = modalPurchaseMileage.value.trim();
+
+  state.activeCarId = c.id;
+  closeCarModal();
+  save();
   openCar(c.id);
 }
-function openCar(id){state.activeCarId=id;garageHome.classList.add("hidden");carApp.classList.remove("hidden");bottomTabs.classList.remove("hidden");render()}
-function showGarageHome(){
-  state.activeCarId=null;
-  carApp.classList.add("hidden");
-  bottomTabs.classList.add("hidden");
-  garageHome.classList.remove("hidden");
+
+function addCar(){
+  openAddCarModal();
+}
+function openCar(id){
+  state=normalizeState(state);
+  const found = state.cars.find(c=>c.id===id);
+  if(!found){
+    alert("Could not open that car. Try refreshing.");
+    return;
+  }
+
+  state.activeCarId=id;
+  garageHome.classList.add("hidden");
+  carApp.classList.remove("hidden");
+  bottomTabs.classList.remove("hidden");
+
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  modsPage.classList.add("active");
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelector(".tab")?.classList.add("active");
+
   save();
-  renderGarage();
+  render();
 }
 function deleteActiveCar(){const c=activeCar();if(!c||!confirm("Delete this car and all its data?"))return;state.cars=state.cars.filter(x=>x.id!==c.id);state.activeCarId=null;save();showGarageHome()}
 
