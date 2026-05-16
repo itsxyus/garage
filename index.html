@@ -509,6 +509,77 @@ input[type=range]{accent-color:var(--accent)}
   cursor:pointer;
 }
 
+
+/* v2.1 core repair: editable mod editor + swipe delete + settings save */
+.mod-swipe-wrap{
+  position:relative;
+  overflow:hidden;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.mod-delete-bg{
+  position:absolute;
+  inset:0 0 0 auto;
+  width:112px;
+  background:linear-gradient(135deg,#5a1016,#c92c34);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-weight:650;
+  opacity:0;
+  transform:translateX(18px);
+  transition:opacity .18s ease, transform .18s ease;
+  pointer-events:none;
+}
+
+.mod-swipe-wrap.show-delete .mod-delete-bg{
+  opacity:1;
+  transform:translateX(0);
+  pointer-events:auto;
+}
+
+.mod-swipe-target{
+  transition:transform .22s ease;
+  touch-action:pan-y;
+  border-bottom:0 !important;
+}
+
+.mod-swipe-target.swiped{
+  transform:translateX(-112px);
+}
+
+.editor{
+  display:none;
+}
+
+.editor.open{
+  display:block !important;
+}
+
+.editor input,
+.editor select,
+.editor textarea{
+  pointer-events:auto !important;
+}
+
+.mini-toast{
+  position:fixed;
+  left:50%;
+  bottom:calc(86px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);
+  z-index:999;
+  background:rgba(10,12,18,.88);
+  border:1px solid rgba(255,255,255,.14);
+  color:var(--text);
+  padding:10px 16px;
+  border-radius:999px;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  box-shadow:0 12px 32px rgba(0,0,0,.35);
+  font-weight:500;
+}
+
 </style>
 </head>
 <body>
@@ -661,11 +732,7 @@ input[type=range]{accent-color:var(--accent)}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-window.addEventListener("error", e => {
-  const el = document.getElementById("cloudStatus");
-  if(el) el.textContent = "App error: " + (e.message || "unknown");
-});
-
+window.addEventListener("error", e => { console.error(e.message || e); const el=document.getElementById("cloudStatus"); if(el) el.textContent="App warning. Local data still saved."; });
 const SUPABASE_URL="https://dcmpjxpqjyxcgztrnrsn.supabase.co";
 const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjbXBqeHBxanl4Y2d6dHJucnNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MDY4NTYsImV4cCI6MjA5NDQ4Mjg1Nn0.H7wlpRbc5eT-b60oXQJ0nFm9_-V5NuTmUrFR3C8vU24";
 const KEY="garage_cloud_barebones_v1";
@@ -677,19 +744,35 @@ let state={cars:[],activeCarId:null};
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function blankCar(){
   return {
-    id:uid(),name:"New Car",year:"",make:"",model:"",chassis:"N/A",engine:"N/A",
-    purchaseDate:"",purchaseMileage:"",currentMileage:"",goals:"",
-    accent:"#ff3b3b",backgroundImage:"",backgroundOpacity:".65",carImage:"",
-    mods:[],services:[]
+    id:uid(),
+    name:"New Car",
+    year:"",
+    make:"",
+    model:"",
+    chassis:"N/A",
+    engine:"N/A",
+    purchaseDate:"",
+    purchaseMileage:"",
+    currentMileage:"",
+    goals:"",
+    accent:"#ff3b3b",
+    backgroundImage:"",
+    backgroundOpacity:".65",
+    carImage:"",
+    mods:[],
+    services:[]
   };
+}
+
+function activeCar(){
+  if(!state || !Array.isArray(state.cars)) state=normalizeState(state);
+  return state.cars.find(c=>c.id===state.activeCarId) || null;
 }
 
 function splitVehicleText(text){
   const parts = String(text || "").trim().split(/\s+/).filter(Boolean);
   const out = {year:"", make:"", model:""};
-  if(parts[0] && /^\d{4}$/.test(parts[0])){
-    out.year = parts.shift();
-  }
+  if(parts[0] && /^\d{4}$/.test(parts[0])) out.year = parts.shift();
   if(parts.length){
     out.make = parts.shift() || "";
     out.model = parts.join(" ");
@@ -699,8 +782,7 @@ function splitVehicleText(text){
 
 function normalizeCar(c){
   c = c || {};
-  const legacyFull = c.carModel || "";
-  const split = splitVehicleText(legacyFull);
+  const split = splitVehicleText(c.carModel || "");
 
   return {
     id:c.id || uid(),
@@ -718,29 +800,41 @@ function normalizeCar(c){
     backgroundImage:c.backgroundImage || "",
     backgroundOpacity:c.backgroundOpacity || ".65",
     carImage:c.carImage || "",
-    mods:Array.isArray(c.mods) ? c.mods.map(m=>({id:m.id||uid(),category:m.category||"Cosmetics",...m})) : [],
-    services:Array.isArray(c.services) ? c.services.map(s=>({id:s.id||uid(),...s})) : []
+    mods:Array.isArray(c.mods) ? c.mods.map(m=>({
+      id:m.id || uid(),
+      category:m.category || "Cosmetics",
+      name:m.name || "New Item",
+      brand:m.brand || "",
+      status:m.status || "Planned",
+      price:m.price || "",
+      date:m.date || "",
+      image:m.image || "",
+      notes:m.notes || ""
+    })) : [],
+    services:Array.isArray(c.services) ? c.services.map(s=>({
+      id:s.id || uid(),
+      name:s.name || "Service",
+      date:s.date || "",
+      mileage:s.mileage || "",
+      intervalMiles:s.intervalMiles || "",
+      intervalMonths:s.intervalMonths || "",
+      cost:s.cost || "",
+      notes:s.notes || ""
+    })) : []
   };
 }
 
 function normalizeState(raw){
-  if(!raw || typeof raw !== "object"){
-    return {cars:[],activeCarId:null};
-  }
+  if(!raw || typeof raw !== "object") return {cars:[],activeCarId:null};
 
   if(Array.isArray(raw.cars)){
     const cars = raw.cars.map(normalizeCar);
     const activeStillExists = cars.some(c=>c.id===raw.activeCarId);
-    return {
-      cars,
-      activeCarId:activeStillExists ? raw.activeCarId : null
-    };
+    return {cars, activeCarId:activeStillExists ? raw.activeCarId : null};
   }
 
-  // Old single-car format from previous versions
   if(Array.isArray(raw.mods) || Array.isArray(raw.services) || raw.carName || raw.carModel){
     const oldCar = normalizeCar({
-      id:raw.id || uid(),
       name:raw.carName || raw.name || "Imported Car",
       year:raw.carYear || "",
       make:raw.carMake || "",
@@ -764,21 +858,18 @@ function normalizeState(raw){
   return {cars:[],activeCarId:null};
 }
 
-function activeCar(){
-  if(!state || !Array.isArray(state.cars)) state=normalizeState(state);
-  return state.cars.find(c=>c.id===state.activeCarId) || null;
-}
+
+
 function money(v){const n=parseFloat(v);return isNaN(n)?"$0.00":n.toLocaleString(undefined,{style:"currency",currency:"USD"})}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function save(){localStorage.setItem(KEY,JSON.stringify(state));scheduleCloudSave()}
 function load(){
   try{
-    const s=localStorage.getItem(KEY);
-    if(s) state=normalizeState(JSON.parse(s));
-    else state=normalizeState(state);
+    const s = localStorage.getItem(KEY);
+    state = s ? normalizeState(JSON.parse(s)) : normalizeState(state);
   }catch(e){
     console.error(e);
-    state={cars:[],activeCarId:null};
+    state = {cars:[],activeCarId:null};
   }
 }
 
@@ -972,7 +1063,7 @@ function closeCarModal(){
 }
 
 function saveCarFromModal(){
-  if(!state || !Array.isArray(state.cars)) state=normalizeState(state);
+  if(!state || !Array.isArray(state.cars)) state = normalizeState(state);
 
   let c = editingCarId ? state.cars.find(x=>x.id===editingCarId) : null;
   if(!c){
@@ -980,17 +1071,18 @@ function saveCarFromModal(){
     state.cars.push(c);
   }
 
-  c.name = modalCarName.value.trim() || "New Car";
-  c.year = modalYear.value.trim();
-  c.make = modalMake.value.trim();
-  c.model = modalModel.value.trim();
-  c.chassis = modalChassis.value.trim() || "N/A";
-  c.engine = modalEngine.value.trim() || "N/A";
-  c.purchaseDate = modalPurchaseDate.value;
-  c.purchaseMileage = modalPurchaseMileage.value.trim();
+  c.name = (document.getElementById("modalCarName")?.value || "").trim() || "New Car";
+  c.year = (document.getElementById("modalYear")?.value || "").trim();
+  c.make = (document.getElementById("modalMake")?.value || "").trim();
+  c.model = (document.getElementById("modalModel")?.value || "").trim();
+  c.chassis = (document.getElementById("modalChassis")?.value || "").trim() || "N/A";
+  c.engine = (document.getElementById("modalEngine")?.value || "").trim() || "N/A";
+  c.purchaseDate = document.getElementById("modalPurchaseDate")?.value || "";
+  c.purchaseMileage = (document.getElementById("modalPurchaseMileage")?.value || "").trim();
 
   state.activeCarId = c.id;
   closeCarModal();
+  localStorage.setItem(KEY, JSON.stringify(state));
   save();
   openCar(c.id);
 }
@@ -999,15 +1091,15 @@ function addCar(){
   openAddCarModal();
 }
 function openCar(id){
-  state=normalizeState(state);
+  state = normalizeState(state);
   const found = state.cars.find(c=>c.id===id);
   if(!found){
     console.warn("Could not open car", id);
     return;
   }
 
-  state.activeCarId=id;
-  localStorage.setItem(KEY,JSON.stringify(state));
+  state.activeCarId = id;
+  localStorage.setItem(KEY, JSON.stringify(state));
 
   garageHome.classList.add("hidden");
   carApp.classList.remove("hidden");
@@ -1141,10 +1233,7 @@ function saveCarInfo(){
     return;
   }
 
-  const val = id => {
-    const el = document.getElementById(id);
-    return el ? el.value : "";
-  };
+  const val = id => document.getElementById(id)?.value || "";
 
   c.name = val("setCarName").trim() || "New Car";
   c.year = val("setYear").trim();
@@ -1163,9 +1252,9 @@ function saveCarInfo(){
   save();
 
   renderHero();
+  renderGarage();
   renderTotals();
   renderTimeline();
-  renderGarage();
   renderSettings();
 
   showToast("Car info saved");
@@ -1554,4 +1643,215 @@ function useHeroAsBackground(){if(!activeCar().carImage)return alert("Add a hero
 load();render();initCloud();
 </script>
 </body>
-</html>
+</html
+function addMod(cat){
+  const c = activeCar();
+  if(!c){
+    alert("Open or create a car first.");
+    return;
+  }
+  if(!Array.isArray(c.mods)) c.mods = [];
+
+  const newItem = {
+    id:uid(),
+    category:cat || "Cosmetics",
+    name:"New Item",
+    brand:"",
+    status:"Planned",
+    price:"",
+    date:"",
+    image:"",
+    notes:""
+  };
+
+  c.mods.push(newItem);
+  save();
+  renderMods();
+  renderTotals();
+  renderTimeline();
+
+  setTimeout(()=>{
+    const editor = document.getElementById(`mod-${newItem.id}`);
+    if(editor) editor.classList.add("open");
+    const nameInput = editor ? editor.querySelector("input[data-field='name']") : null;
+    if(nameInput) nameInput.focus();
+  },50);
+}
+
+function deleteMod(id){
+  const c = activeCar();
+  if(!c) return;
+  c.mods = (c.mods || []).filter(m=>m.id!==id);
+  save();
+  renderMods();
+  renderTotals();
+  renderTimeline();
+}
+
+function getMod(id){
+  const c = activeCar();
+  if(!c) return null;
+  return c.mods.find(m=>m.id===id);
+}
+
+function toggleEditor(id){
+  const el = document.getElementById(id);
+  if(el) el.classList.toggle("open");
+}
+
+function updateModField(id, field, value){
+  const m = getMod(id);
+  if(!m) return;
+  m[field] = value;
+  save();
+  if(field === "price" || field === "status") renderTotals();
+  if(field === "date") renderTimeline();
+  if(field === "category") renderMods();
+}
+
+function renderMods(){
+  const c = activeCar();
+  if(!c) return;
+  if(!Array.isArray(c.mods)) c.mods = [];
+
+  const page = document.getElementById("modsPage");
+  if(!page) return;
+
+  page.innerHTML = BASE_CATS.map(cat=>{
+    const items = c.mods.filter(m=>(m.category || cat) === cat);
+
+    return `
+      <section class="section glass">
+        <div class="section-head">
+          <h2>${cat}</h2>
+          <div class="section-controls">
+            <select class="sort-select" onchange="sortCategory('${cat}',this.value)">
+              <option value="">Sort By</option>
+              <option value="priceHigh">Price High → Low</option>
+              <option value="priceLow">Price Low → High</option>
+              <option value="dateDesc">Date ↓</option>
+              <option value="dateAsc">Date ↑</option>
+            </select>
+            <button class="btn red" type="button" onclick="event.stopPropagation(); addMod('${cat}')">＋ Add Item</button>
+          </div>
+        </div>
+        ${
+          items.length
+          ? items.map(itemHTML).join("")
+          : `<div class="empty-cat" onclick="addMod('${cat}')">
+              <div class="empty-thumb">N/A</div>
+              <div><b>No items yet</b><div class="sub">Tap to add first item</div></div>
+            </div>`
+        }
+      </section>
+    `;
+  }).join("");
+
+  initModSwipe();
+}
+
+function itemHTML(m){
+  if(!m.id) m.id = uid();
+  const editorId = `mod-${m.id}`;
+
+  return `
+    <div class="mod-swipe-wrap" data-mod-id="${m.id}">
+      <div class="mod-delete-bg" onclick="deleteMod('${m.id}')">Delete</div>
+      <div class="item-row mod-swipe-target" onclick="toggleEditor('${editorId}')">
+        <img class="thumb" src="${esc(m.image||fallbackImg)}" onclick="event.stopPropagation();pickModPhoto('${m.id}')" onerror="this.src=fallbackImg">
+        <div>
+          <h3>${esc(m.name||"New Item")}</h3>
+          <div class="sub">${esc(m.brand||m.status||"Planned")}</div>
+        </div>
+        <div class="price">${money(m.price)}</div>
+        <div class="chev">›</div>
+      </div>
+    </div>
+
+    <div class="editor" id="${editorId}">
+      <div class="form-grid">
+        <label>Category
+          <select onchange="updateModField('${m.id}','category',this.value)">
+            ${BASE_CATS.map(c=>`<option value="${c}" ${m.category===c?"selected":""}>${c}</option>`).join("")}
+          </select>
+        </label>
+
+        <label class="span2">Name
+          <input data-field="name" value="${esc(m.name||"")}" oninput="updateModField('${m.id}','name',this.value)">
+        </label>
+
+        <label>Price
+          <input type="number" value="${esc(m.price||"")}" oninput="updateModField('${m.id}','price',this.value)">
+        </label>
+
+        <label>Brand
+          <input value="${esc(m.brand||"")}" oninput="updateModField('${m.id}','brand',this.value)">
+        </label>
+
+        <label>Status
+          <select onchange="updateModField('${m.id}','status',this.value)">
+            ${["Installed","Ordered","Planned"].map(s=>`<option ${m.status===s?"selected":""}>${s}</option>`).join("")}
+          </select>
+        </label>
+
+        <label>Date
+          <input type="date" value="${esc(m.date||"")}" oninput="updateModField('${m.id}','date',this.value)">
+        </label>
+
+        <label class="full">Notes
+          <textarea oninput="updateModField('${m.id}','notes',this.value)">${esc(m.notes||"")}</textarea>
+        </label>
+      </div>
+
+      <div class="bg-control-row">
+        <button class="btn" onclick="pickModPhoto('${m.id}')">Photo</button>
+        <button class="btn danger" onclick="deleteMod('${m.id}')">Delete</button>
+      </div>
+    </div>
+  `;
+}
+
+function initModSwipe(){
+  document.querySelectorAll(".mod-swipe-wrap").forEach(wrap=>{
+    const target = wrap.querySelector(".mod-swipe-target");
+    if(!target || target.dataset.swipeReady) return;
+    target.dataset.swipeReady = "1";
+
+    let startX=0,startY=0,dx=0,dragging=false,moved=false;
+
+    target.addEventListener("pointerdown", e=>{
+      startX=e.clientX; startY=e.clientY; dx=0; dragging=true; moved=false;
+      target.setPointerCapture(e.pointerId);
+    });
+
+    target.addEventListener("pointermove", e=>{
+      if(!dragging) return;
+      dx=e.clientX-startX;
+      const dy=Math.abs(e.clientY-startY);
+      if(Math.abs(dx)>8) moved=true;
+      if(dy>35) return;
+      if(dx<0) target.style.transform=`translateX(${Math.max(dx,-112)}px)`;
+    });
+
+    target.addEventListener("pointerup", e=>{
+      if(!dragging) return;
+      dragging=false;
+      target.style.transform="";
+
+      if(dx<-55){
+        target.classList.add("swiped");
+        wrap.classList.add("show-delete");
+        e.stopPropagation();
+      }else if(dx>25){
+        target.classList.remove("swiped");
+        wrap.classList.remove("show-delete");
+        e.stopPropagation();
+      }else if(!moved){
+        const id = "mod-" + wrap.dataset.modId;
+        toggleEditor(id);
+      }
+    });
+  });
+}
+
+>
