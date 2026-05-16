@@ -487,30 +487,7 @@ input[type=range]{accent-color:var(--accent)}
 }
 
 
-/* v2.0 settings save repair */
-.mini-toast{
-  position:fixed;
-  left:50%;
-  bottom:calc(86px + env(safe-area-inset-bottom));
-  transform:translateX(-50%);
-  z-index:999;
-  background:rgba(10,12,18,.88);
-  border:1px solid rgba(255,255,255,.14);
-  color:var(--text);
-  padding:10px 16px;
-  border-radius:999px;
-  backdrop-filter:blur(14px);
-  -webkit-backdrop-filter:blur(14px);
-  box-shadow:0 12px 32px rgba(0,0,0,.35);
-  font-weight:500;
-}
-
-#settingsPage input[type="color"]{
-  cursor:pointer;
-}
-
-
-/* v2.1 core repair: editable mod editor + swipe delete + settings save */
+/* v2.2 safe repair: settings save + editable mod editor + swipe delete */
 .mod-swipe-wrap{
   position:relative;
   overflow:hidden;
@@ -744,35 +721,19 @@ let state={cars:[],activeCarId:null};
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function blankCar(){
   return {
-    id:uid(),
-    name:"New Car",
-    year:"",
-    make:"",
-    model:"",
-    chassis:"N/A",
-    engine:"N/A",
-    purchaseDate:"",
-    purchaseMileage:"",
-    currentMileage:"",
-    goals:"",
-    accent:"#ff3b3b",
-    backgroundImage:"",
-    backgroundOpacity:".65",
-    carImage:"",
-    mods:[],
-    services:[]
+    id:uid(),name:"New Car",year:"",make:"",model:"",chassis:"N/A",engine:"N/A",
+    purchaseDate:"",purchaseMileage:"",currentMileage:"",goals:"",
+    accent:"#ff3b3b",backgroundImage:"",backgroundOpacity:".65",carImage:"",
+    mods:[],services:[]
   };
-}
-
-function activeCar(){
-  if(!state || !Array.isArray(state.cars)) state=normalizeState(state);
-  return state.cars.find(c=>c.id===state.activeCarId) || null;
 }
 
 function splitVehicleText(text){
   const parts = String(text || "").trim().split(/\s+/).filter(Boolean);
   const out = {year:"", make:"", model:""};
-  if(parts[0] && /^\d{4}$/.test(parts[0])) out.year = parts.shift();
+  if(parts[0] && /^\d{4}$/.test(parts[0])){
+    out.year = parts.shift();
+  }
   if(parts.length){
     out.make = parts.shift() || "";
     out.model = parts.join(" ");
@@ -782,7 +743,8 @@ function splitVehicleText(text){
 
 function normalizeCar(c){
   c = c || {};
-  const split = splitVehicleText(c.carModel || "");
+  const legacyFull = c.carModel || "";
+  const split = splitVehicleText(legacyFull);
 
   return {
     id:c.id || uid(),
@@ -800,41 +762,29 @@ function normalizeCar(c){
     backgroundImage:c.backgroundImage || "",
     backgroundOpacity:c.backgroundOpacity || ".65",
     carImage:c.carImage || "",
-    mods:Array.isArray(c.mods) ? c.mods.map(m=>({
-      id:m.id || uid(),
-      category:m.category || "Cosmetics",
-      name:m.name || "New Item",
-      brand:m.brand || "",
-      status:m.status || "Planned",
-      price:m.price || "",
-      date:m.date || "",
-      image:m.image || "",
-      notes:m.notes || ""
-    })) : [],
-    services:Array.isArray(c.services) ? c.services.map(s=>({
-      id:s.id || uid(),
-      name:s.name || "Service",
-      date:s.date || "",
-      mileage:s.mileage || "",
-      intervalMiles:s.intervalMiles || "",
-      intervalMonths:s.intervalMonths || "",
-      cost:s.cost || "",
-      notes:s.notes || ""
-    })) : []
+    mods:Array.isArray(c.mods) ? c.mods.map(m=>({id:m.id||uid(),category:m.category||"Cosmetics",...m})) : [],
+    services:Array.isArray(c.services) ? c.services.map(s=>({id:s.id||uid(),...s})) : []
   };
 }
 
 function normalizeState(raw){
-  if(!raw || typeof raw !== "object") return {cars:[],activeCarId:null};
+  if(!raw || typeof raw !== "object"){
+    return {cars:[],activeCarId:null};
+  }
 
   if(Array.isArray(raw.cars)){
     const cars = raw.cars.map(normalizeCar);
     const activeStillExists = cars.some(c=>c.id===raw.activeCarId);
-    return {cars, activeCarId:activeStillExists ? raw.activeCarId : null};
+    return {
+      cars,
+      activeCarId:activeStillExists ? raw.activeCarId : null
+    };
   }
 
+  // Old single-car format from previous versions
   if(Array.isArray(raw.mods) || Array.isArray(raw.services) || raw.carName || raw.carModel){
     const oldCar = normalizeCar({
+      id:raw.id || uid(),
       name:raw.carName || raw.name || "Imported Car",
       year:raw.carYear || "",
       make:raw.carMake || "",
@@ -858,18 +808,21 @@ function normalizeState(raw){
   return {cars:[],activeCarId:null};
 }
 
-
-
+function activeCar(){
+  if(!state || !Array.isArray(state.cars)) state=normalizeState(state);
+  return state.cars.find(c=>c.id===state.activeCarId) || null;
+}
 function money(v){const n=parseFloat(v);return isNaN(n)?"$0.00":n.toLocaleString(undefined,{style:"currency",currency:"USD"})}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function save(){localStorage.setItem(KEY,JSON.stringify(state));scheduleCloudSave()}
 function load(){
   try{
-    const s = localStorage.getItem(KEY);
-    state = s ? normalizeState(JSON.parse(s)) : normalizeState(state);
+    const s=localStorage.getItem(KEY);
+    if(s) state=normalizeState(JSON.parse(s));
+    else state=normalizeState(state);
   }catch(e){
     console.error(e);
-    state = {cars:[],activeCarId:null};
+    state={cars:[],activeCarId:null};
   }
 }
 
@@ -1063,7 +1016,7 @@ function closeCarModal(){
 }
 
 function saveCarFromModal(){
-  if(!state || !Array.isArray(state.cars)) state = normalizeState(state);
+  if(!state || !Array.isArray(state.cars)) state=normalizeState(state);
 
   let c = editingCarId ? state.cars.find(x=>x.id===editingCarId) : null;
   if(!c){
@@ -1071,18 +1024,17 @@ function saveCarFromModal(){
     state.cars.push(c);
   }
 
-  c.name = (document.getElementById("modalCarName")?.value || "").trim() || "New Car";
-  c.year = (document.getElementById("modalYear")?.value || "").trim();
-  c.make = (document.getElementById("modalMake")?.value || "").trim();
-  c.model = (document.getElementById("modalModel")?.value || "").trim();
-  c.chassis = (document.getElementById("modalChassis")?.value || "").trim() || "N/A";
-  c.engine = (document.getElementById("modalEngine")?.value || "").trim() || "N/A";
-  c.purchaseDate = document.getElementById("modalPurchaseDate")?.value || "";
-  c.purchaseMileage = (document.getElementById("modalPurchaseMileage")?.value || "").trim();
+  c.name = modalCarName.value.trim() || "New Car";
+  c.year = modalYear.value.trim();
+  c.make = modalMake.value.trim();
+  c.model = modalModel.value.trim();
+  c.chassis = modalChassis.value.trim() || "N/A";
+  c.engine = modalEngine.value.trim() || "N/A";
+  c.purchaseDate = modalPurchaseDate.value;
+  c.purchaseMileage = modalPurchaseMileage.value.trim();
 
   state.activeCarId = c.id;
   closeCarModal();
-  localStorage.setItem(KEY, JSON.stringify(state));
   save();
   openCar(c.id);
 }
@@ -1091,15 +1043,15 @@ function addCar(){
   openAddCarModal();
 }
 function openCar(id){
-  state = normalizeState(state);
+  state=normalizeState(state);
   const found = state.cars.find(c=>c.id===id);
   if(!found){
     console.warn("Could not open car", id);
     return;
   }
 
-  state.activeCarId = id;
-  localStorage.setItem(KEY, JSON.stringify(state));
+  state.activeCarId=id;
+  localStorage.setItem(KEY,JSON.stringify(state));
 
   garageHome.classList.add("hidden");
   carApp.classList.remove("hidden");
@@ -1476,222 +1428,7 @@ function addMod(cat){
   setTimeout(()=>{
     const editor = document.getElementById(`mod-${newItem.id}`);
     if(editor) editor.classList.add("open");
-    const firstInput = editor ? editor.querySelector("input") : null;
-    if(firstInput) firstInput.focus();
   },50);
-}
-function renderMods(){
-  const c = activeCar();
-  if(!c) return;
-  if(!Array.isArray(c.mods)) c.mods = [];
-
-  const page = document.getElementById("modsPage");
-  if(!page) return;
-
-  page.innerHTML = BASE_CATS.map(cat=>{
-    const items = c.mods.filter(m=>(m.category || cat) === cat);
-
-    return `
-      <section class="section glass">
-        <div class="section-head">
-          <h2>${cat}</h2>
-          <div class="section-controls">
-            <select class="sort-select" onchange="sortCategory('${cat}',this.value)">
-              <option value="">Sort By</option>
-              <option value="priceHigh">Price High → Low</option>
-              <option value="priceLow">Price Low → High</option>
-              <option value="dateDesc">Date ↓</option>
-              <option value="dateAsc">Date ↑</option>
-            </select>
-            <button class="btn red" type="button" onclick="event.stopPropagation(); addMod('${cat}')">＋ Add Item</button>
-          </div>
-        </div>
-
-        ${
-          items.length
-          ? items.map(itemHTML).join("")
-          : `<div class="empty-cat" onclick="addMod('${cat}')">
-              <div class="empty-thumb">N/A</div>
-              <div><b>No items yet</b><div class="sub">Tap to add first item</div></div>
-            </div>`
-        }
-      </section>
-    `;
-  }).join("");
-}
-
-function itemHTML(m){
-  if(!m.id) m.id = uid();
-
-  return `
-    <div class="item-row" onclick="toggleEditor('mod-${m.id}')">
-      <img class="thumb" src="${esc(m.image||fallbackImg)}" onclick="event.stopPropagation();pickModPhoto('${m.id}')" onerror="this.src=fallbackImg">
-      <div>
-        <h3>${esc(m.name||"New Item")}</h3>
-        <div class="sub">${esc(m.brand||m.status||"Planned")}</div>
-      </div>
-      <div class="price">${money(m.price)}</div>
-      <div class="chev">›</div>
-    </div>
-
-    <div class="editor" id="mod-${m.id}">
-      <div class="form-grid">
-        <label>Category
-          <input value="${esc(m.category||"")}" oninput="getMod('${m.id}').category=this.value;save()">
-        </label>
-
-        <label class="span2">Name
-          <input value="${esc(m.name||"")}" oninput="getMod('${m.id}').name=this.value;save();renderTotals()">
-        </label>
-
-        <label>Price
-          <input type="number" value="${esc(m.price||"")}" oninput="getMod('${m.id}').price=this.value;save();renderTotals()">
-        </label>
-
-        <label>Brand
-          <input value="${esc(m.brand||"")}" oninput="getMod('${m.id}').brand=this.value;save()">
-        </label>
-
-        <label>Status
-          <select onchange="getMod('${m.id}').status=this.value;save();renderTotals()">
-            ${["Installed","Ordered","Planned"].map(s=>`<option ${m.status===s?"selected":""}>${s}</option>`).join("")}
-          </select>
-        </label>
-
-        <label>Date
-          <input type="date" value="${esc(m.date||"")}" oninput="getMod('${m.id}').date=this.value;save();renderTimeline()">
-        </label>
-
-        <label class="full">Notes
-          <textarea oninput="getMod('${m.id}').notes=this.value;save()">${esc(m.notes||"")}</textarea>
-        </label>
-      </div>
-
-      <div class="bg-control-row">
-        <button class="btn" onclick="pickModPhoto('${m.id}')">Photo</button>
-        <button class="btn danger" onclick="deleteMod('${m.id}')">Delete</button>
-      </div>
-    </div>
-  `;
-}
-
-let contextTimeline = {kind:null,id:null};
-
-function showTimelineContextMenu(event,kind,id){
-  event.preventDefault();
-  contextTimeline={kind,id};
-  if(confirm("Remove this from the timeline?")){
-    deleteTimelineEvent(kind,id);
-  }
-}
-
-function initTimelineSwipe(){
-  document.querySelectorAll(".timeline-swipe-wrap").forEach(wrap=>{
-    const target=wrap.querySelector(".timeline-swipe-target");
-    if(!target || target.dataset.swipeReady) return;
-    target.dataset.swipeReady="1";
-
-    let startX=0,startY=0,dx=0,dragging=false;
-
-    target.addEventListener("pointerdown", e=>{
-      startX=e.clientX;startY=e.clientY;dx=0;dragging=true;
-      target.setPointerCapture(e.pointerId);
-    });
-
-    target.addEventListener("pointermove", e=>{
-      if(!dragging) return;
-      dx=e.clientX-startX;
-      const dy=Math.abs(e.clientY-startY);
-      if(dy>35) return;
-      if(dx<0) target.style.transform=`translateX(${Math.max(dx,-112)}px)`;
-    });
-
-    target.addEventListener("pointerup", e=>{
-      if(!dragging) return;
-      dragging=false;
-      target.style.transform="";
-      if(dx<-55){
-        target.classList.add("swiped");
-        wrap.classList.add("show-delete");
-      }else if(dx>25){
-        target.classList.remove("swiped");
-        wrap.classList.remove("show-delete");
-      }
-    });
-  });
-}
-
-
-function showToast(message){
-  const old = document.getElementById("miniToast");
-  if(old) old.remove();
-
-  const t = document.createElement("div");
-  t.id = "miniToast";
-  t.className = "mini-toast";
-  t.textContent = message;
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(),1300);
-}
-
-function showPage(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));btn.classList.add("active");window.scrollTo({top:0,behavior:"smooth"})}
-function handlePhotoFile(e,type){const file=e.target.files?.[0];if(!file)return;const r=new FileReader();r.onload=ev=>{if(type==="hero")activeCar().carImage=ev.target.result;save();render()};r.readAsDataURL(file)}
-let photoModId=null;function pickModPhoto(id){photoModId=id;let inp=document.getElementById("modPhotoInput");if(!inp){inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.className="real-file-input";inp.id="modPhotoInput";inp.onchange=e=>{const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{getMod(photoModId).image=ev.target.result;save();render()};r.readAsDataURL(f)};document.body.appendChild(inp)}inp.value="";inp.click()}
-function handleBackgroundFile(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{activeCar().backgroundImage=ev.target.result;save();renderHero()};r.readAsDataURL(f)}
-function useHeroAsBackground(){if(!activeCar().carImage)return alert("Add a hero image first.");activeCar().backgroundImage=activeCar().carImage;save();renderHero()}
-
-load();render();initCloud();
-</script>
-</body>
-</html
-function addMod(cat){
-  const c = activeCar();
-  if(!c){
-    alert("Open or create a car first.");
-    return;
-  }
-  if(!Array.isArray(c.mods)) c.mods = [];
-
-  const newItem = {
-    id:uid(),
-    category:cat || "Cosmetics",
-    name:"New Item",
-    brand:"",
-    status:"Planned",
-    price:"",
-    date:"",
-    image:"",
-    notes:""
-  };
-
-  c.mods.push(newItem);
-  save();
-  renderMods();
-  renderTotals();
-  renderTimeline();
-
-  setTimeout(()=>{
-    const editor = document.getElementById(`mod-${newItem.id}`);
-    if(editor) editor.classList.add("open");
-    const nameInput = editor ? editor.querySelector("input[data-field='name']") : null;
-    if(nameInput) nameInput.focus();
-  },50);
-}
-
-function deleteMod(id){
-  const c = activeCar();
-  if(!c) return;
-  c.mods = (c.mods || []).filter(m=>m.id!==id);
-  save();
-  renderMods();
-  renderTotals();
-  renderTimeline();
-}
-
-function getMod(id){
-  const c = activeCar();
-  if(!c) return null;
-  return c.mods.find(m=>m.id===id);
 }
 
 function toggleEditor(id){
@@ -1702,11 +1439,60 @@ function toggleEditor(id){
 function updateModField(id, field, value){
   const m = getMod(id);
   if(!m) return;
+
   m[field] = value;
   save();
+
   if(field === "price" || field === "status") renderTotals();
   if(field === "date") renderTimeline();
   if(field === "category") renderMods();
+}
+
+function initModSwipe(){
+  document.querySelectorAll(".mod-swipe-wrap").forEach(wrap=>{
+    const target = wrap.querySelector(".mod-swipe-target");
+    if(!target || target.dataset.swipeReady) return;
+    target.dataset.swipeReady = "1";
+
+    let startX=0,startY=0,dx=0,dragging=false,moved=false;
+
+    target.addEventListener("pointerdown", e=>{
+      startX=e.clientX;
+      startY=e.clientY;
+      dx=0;
+      dragging=true;
+      moved=false;
+      target.setPointerCapture(e.pointerId);
+    });
+
+    target.addEventListener("pointermove", e=>{
+      if(!dragging) return;
+      dx=e.clientX-startX;
+      const dy=Math.abs(e.clientY-startY);
+      if(Math.abs(dx)>8) moved=true;
+      if(dy>35) return;
+      if(dx<0) target.style.transform=`translateX(${Math.max(dx,-112)}px)`;
+    });
+
+    target.addEventListener("pointerup", e=>{
+      if(!dragging) return;
+      dragging=false;
+      target.style.transform="";
+
+      if(dx<-55){
+        target.classList.add("swiped");
+        wrap.classList.add("show-delete");
+        e.stopPropagation();
+      }else if(dx>25){
+        target.classList.remove("swiped");
+        wrap.classList.remove("show-delete");
+        e.stopPropagation();
+      }else if(!moved){
+        const id = "mod-" + wrap.dataset.modId;
+        toggleEditor(id);
+      }
+    });
+  });
 }
 
 function renderMods(){
@@ -1735,6 +1521,7 @@ function renderMods(){
             <button class="btn red" type="button" onclick="event.stopPropagation(); addMod('${cat}')">＋ Add Item</button>
           </div>
         </div>
+
         ${
           items.length
           ? items.map(itemHTML).join("")
@@ -1811,16 +1598,26 @@ function itemHTML(m){
   `;
 }
 
-function initModSwipe(){
-  document.querySelectorAll(".mod-swipe-wrap").forEach(wrap=>{
-    const target = wrap.querySelector(".mod-swipe-target");
-    if(!target || target.dataset.swipeReady) return;
-    target.dataset.swipeReady = "1";
+let contextTimeline = {kind:null,id:null};
 
-    let startX=0,startY=0,dx=0,dragging=false,moved=false;
+function showTimelineContextMenu(event,kind,id){
+  event.preventDefault();
+  contextTimeline={kind,id};
+  if(confirm("Remove this from the timeline?")){
+    deleteTimelineEvent(kind,id);
+  }
+}
+
+function initTimelineSwipe(){
+  document.querySelectorAll(".timeline-swipe-wrap").forEach(wrap=>{
+    const target=wrap.querySelector(".timeline-swipe-target");
+    if(!target || target.dataset.swipeReady) return;
+    target.dataset.swipeReady="1";
+
+    let startX=0,startY=0,dx=0,dragging=false;
 
     target.addEventListener("pointerdown", e=>{
-      startX=e.clientX; startY=e.clientY; dx=0; dragging=true; moved=false;
+      startX=e.clientX;startY=e.clientY;dx=0;dragging=true;
       target.setPointerCapture(e.pointerId);
     });
 
@@ -1828,7 +1625,6 @@ function initModSwipe(){
       if(!dragging) return;
       dx=e.clientX-startX;
       const dy=Math.abs(e.clientY-startY);
-      if(Math.abs(dx)>8) moved=true;
       if(dy>35) return;
       if(dx<0) target.style.transform=`translateX(${Math.max(dx,-112)}px)`;
     });
@@ -1837,21 +1633,36 @@ function initModSwipe(){
       if(!dragging) return;
       dragging=false;
       target.style.transform="";
-
       if(dx<-55){
         target.classList.add("swiped");
         wrap.classList.add("show-delete");
-        e.stopPropagation();
       }else if(dx>25){
         target.classList.remove("swiped");
         wrap.classList.remove("show-delete");
-        e.stopPropagation();
-      }else if(!moved){
-        const id = "mod-" + wrap.dataset.modId;
-        toggleEditor(id);
       }
     });
   });
 }
 
->
+function showToast(message){
+  const old = document.getElementById("miniToast");
+  if(old) old.remove();
+
+  const t = document.createElement("div");
+  t.id = "miniToast";
+  t.className = "mini-toast";
+  t.textContent = message;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),1300);
+}
+
+function showPage(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));btn.classList.add("active");window.scrollTo({top:0,behavior:"smooth"})}
+function handlePhotoFile(e,type){const file=e.target.files?.[0];if(!file)return;const r=new FileReader();r.onload=ev=>{if(type==="hero")activeCar().carImage=ev.target.result;save();render()};r.readAsDataURL(file)}
+let photoModId=null;function pickModPhoto(id){photoModId=id;let inp=document.getElementById("modPhotoInput");if(!inp){inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.className="real-file-input";inp.id="modPhotoInput";inp.onchange=e=>{const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{getMod(photoModId).image=ev.target.result;save();render()};r.readAsDataURL(f)};document.body.appendChild(inp)}inp.value="";inp.click()}
+function handleBackgroundFile(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{activeCar().backgroundImage=ev.target.result;save();renderHero()};r.readAsDataURL(f)}
+function useHeroAsBackground(){if(!activeCar().carImage)return alert("Add a hero image first.");activeCar().backgroundImage=activeCar().carImage;save();renderHero()}
+
+load();render();initCloud();
+</script>
+</body>
+</html>
