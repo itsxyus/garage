@@ -335,6 +335,100 @@ input[type=range]{accent-color:var(--accent)}
   display:none !important;
 }
 
+
+/* v1.4 guest mode + cleaner settings + context/right-click delete */
+.auth-actions{
+  grid-template-columns:1fr 1fr !important;
+}
+
+.context-menu{
+  position:fixed;
+  z-index:900;
+  min-width:155px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:rgba(12,14,20,.94);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  padding:6px;
+  box-shadow:0 18px 45px rgba(0,0,0,.4);
+}
+
+.context-menu button{
+  width:100%;
+  display:block;
+  background:transparent;
+  color:var(--text);
+  border:0;
+  padding:10px 11px;
+  text-align:left;
+  border-radius:10px;
+}
+
+.context-menu button:hover{
+  background:rgba(255,255,255,.07);
+}
+
+.context-menu .danger-text{
+  color:#ff858b;
+}
+
+#settingsPage .bg-control-row:last-child{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:8px;
+}
+
+#settingsPage .bg-control-row:last-child .btn{
+  width:100%;
+  white-space:nowrap;
+}
+
+/* Timeline swipe delete */
+.timeline-swipe-wrap{
+  position:relative;
+  overflow:hidden;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.timeline-swipe-wrap .timeline-entry{
+  border-bottom:0;
+  transition:transform .22s ease;
+  touch-action:pan-y;
+}
+
+.timeline-delete-bg{
+  position:absolute;
+  inset:0 0 0 auto;
+  width:112px;
+  background:linear-gradient(135deg,#5a1016,#c92c34);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-weight:650;
+  opacity:0;
+  transform:translateX(18px);
+  transition:opacity .18s ease, transform .18s ease;
+  pointer-events:none;
+}
+
+.timeline-swipe-wrap.show-delete .timeline-delete-bg{
+  opacity:1;
+  transform:translateX(0);
+  pointer-events:auto;
+}
+
+.timeline-entry.swiped{
+  transform:translateX(-112px);
+}
+
+@media(max-width:540px){
+  #settingsPage .bg-control-row:last-child{
+    grid-template-columns:1fr;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -347,6 +441,7 @@ input[type=range]{accent-color:var(--accent)}
     <div class="auth-actions">
       <button class="btn red" onclick="cloudSignIn()">Log In</button>
       <button class="btn" onclick="cloudSignUp()">Sign Up</button>
+      <button class="btn" onclick="continueAsGuest()" style="grid-column:1/-1">Continue as Guest</button>
     </div>
     <p id="authStatus" class="status">Cloud sync ready.</p>
   </div>
@@ -451,8 +546,8 @@ input[type=range]{accent-color:var(--accent)}
           <label>Model<input id="setModel" oninput="activeCar().model=this.value;save();render()"></label>
           <label>Chassis Code<input id="setChassis" oninput="activeCar().chassis=this.value;save();render()"></label>
           <label>Engine<input id="setEngine" oninput="activeCar().engine=this.value;save();render()"></label>
-          <label>Purchase Date<input id="setPurchaseDate" type="date" oninput="activeCar().purchaseDate=this.value;save();render()"></label>
-          <label>Purchase Mileage<input id="setPurchaseMileage" inputmode="numeric" oninput="activeCar().purchaseMileage=this.value;save();render()"></label>
+          <label>Purchase Date<input id="setPurchaseDate" type="date" onchange="activeCar().purchaseDate=this.value;save();renderTimeline()" oninput="activeCar().purchaseDate=this.value;save();renderTimeline()"></label>
+          <label>Purchase Mileage<input id="setPurchaseMileage" inputmode="numeric" oninput="activeCar().purchaseMileage=this.value;save();renderTimeline()"></label>
           <label class="span2">Accent Color<div class="color-row"><input id="setAccent" type="color" oninput="activeCar().accent=this.value;save();render()"><span>Live theme</span></div></label>
           <label class="span2">Background Opacity<input id="setBgOpacity" type="range" min=".25" max="1" step=".01" oninput="activeCar().backgroundOpacity=this.value;save();renderHero()"></label>
           <label class="span2">Background URL<input id="setBgUrl" oninput="activeCar().backgroundImage=this.value;save();renderHero()" placeholder="optional direct image link"></label>
@@ -467,11 +562,9 @@ input[type=range]{accent-color:var(--accent)}
           <label class="full">Goals<textarea id="setGoals" oninput="activeCar().goals=this.value;save()"></textarea></label>
         </div>
         <div class="bg-control-row" style="margin-top:14px">
-          <button class="btn" onclick="openEditCarModal()" type="button">Edit Car Info</button>
-          <button class="btn danger" onclick="deletePurchaseEntry()">Delete Purchase Timeline Entry</button>
-          <button class="btn danger" onclick="deleteActiveCar()">Delete This Car</button>
-          <button class="btn" onclick="cloudSaveNow()">Save to Cloud</button>
-          <button class="btn" onclick="cloudLoad()">Load from Cloud</button>
+          <button class="btn danger" onclick="deleteActiveCar()">Delete Car</button>
+          <button class="btn" onclick="cloudSaveNow()">Save Cloud</button>
+          <button class="btn" onclick="cloudLoad()">Load Cloud</button>
         </div>
       </section>
     </div>
@@ -628,6 +721,57 @@ async function cloudSaveNow(silent=false){
     setStatus(`Cloud saved • ${new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}`);
   }catch(e){console.error(e);setStatus("Cloud save failed. Local saved.");if(!silent)alert(e.message)}
 }
+
+function continueAsGuest(){
+  cloudUser = null;
+  const overlay=document.getElementById("authOverlay");
+  overlay.classList.add("fade-out");
+  setTimeout(()=>overlay.classList.add("hidden"),280);
+  setStatus("Guest mode • saved on this device");
+  render();
+}
+
+let contextCarId = null;
+
+function showCarContextMenu(event,id){
+  event.preventDefault();
+  contextCarId = id;
+  const menu = document.getElementById("carContextMenu");
+  if(!menu) return;
+
+  menu.style.left = Math.min(event.clientX, window.innerWidth - 170) + "px";
+  menu.style.top = Math.min(event.clientY, window.innerHeight - 150) + "px";
+  menu.classList.remove("hidden");
+}
+
+function hideCarContextMenu(){
+  const menu = document.getElementById("carContextMenu");
+  if(menu) menu.classList.add("hidden");
+}
+
+function contextOpenCar(){
+  if(contextCarId) openCar(contextCarId);
+  hideCarContextMenu();
+}
+
+function contextEditCar(){
+  if(contextCarId){
+    state.activeCarId = contextCarId;
+    openEditCarModal();
+  }
+  hideCarContextMenu();
+}
+
+function contextDeleteCar(){
+  if(contextCarId) deleteCarFromGarage(contextCarId);
+  hideCarContextMenu();
+}
+
+document.addEventListener("click", e=>{
+  const menu=document.getElementById("carContextMenu");
+  if(menu && !menu.contains(e.target)) hideCarContextMenu();
+});
+
 async function cloudLoad(auto=false){
   if(!cloudUser){if(!auto)alert("Log in first.");return}
   try{
@@ -670,7 +814,7 @@ function renderGarage(){
   const carTiles = state.cars.map(c=>`
     <div class="garage-swipe-wrap" data-car-id="${c.id}">
       <div class="garage-delete-bg" onclick="deleteCarFromGarage('${c.id}')">Delete</div>
-      <div class="car-tile glass garage-card" onclick="openCar('${c.id}')">
+      <div class="car-tile glass garage-card" onclick="openCar('${c.id}')" oncontextmenu="showCarContextMenu(event,'${c.id}')">
         <img src="${esc(c.carImage||fallbackImg)}" onerror="this.src=fallbackImg">
         <h2>${esc(c.name||"Unnamed Car")}</h2>
         <p>${esc([c.year,c.make,c.model].filter(Boolean).join(" ")||"No vehicle info yet")}</p>
@@ -868,9 +1012,18 @@ function initGarageSwipe(){
 
 function renderSettings(){
   const c=activeCar();if(!c)return;
-  setCarName.value=c.name||"";setYear.value=c.year||"";setMake.value=c.make||"";setModel.value=c.model||"";
-  setChassis.value=c.chassis||"";setEngine.value=c.engine||"";setPurchaseDate.value=c.purchaseDate||"";setPurchaseMileage.value=c.purchaseMileage||"";
-  setAccent.value=c.accent||"#ff3b3b";setBgOpacity.value=c.backgroundOpacity||".65";setBgUrl.value=c.backgroundImage||"";setGoals.value=c.goals||"";
+  setCarName.value=c.name||"";
+  setYear.value=c.year||"";
+  setMake.value=c.make||"";
+  setModel.value=c.model||"";
+  setChassis.value=c.chassis||"";
+  setEngine.value=c.engine||"";
+  setPurchaseDate.value=c.purchaseDate||"";
+  setPurchaseMileage.value=c.purchaseMileage||"";
+  setAccent.value=c.accent||"#ff3b3b";
+  setBgOpacity.value=c.backgroundOpacity||".65";
+  setBgUrl.value=c.backgroundImage||"";
+  setGoals.value=c.goals||"";
 }
 function renderTotals(){
   const c=activeCar();if(!c)return;
@@ -903,6 +1056,72 @@ function getService(id){return activeCar().services.find(s=>s.id===id)}
 function formatDate(d){try{return new Date(d+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}catch(e){return d}}
 function renderTimeline(){const c=activeCar();let events=[];c.mods.filter(m=>m.date).forEach(m=>events.push({date:m.date,title:m.name,sub:`${m.category}${m.price?" • "+money(m.price):""}`}));c.services.filter(s=>s.date).forEach(s=>events.push({date:s.date,title:s.name,sub:`${s.mileage?Number(s.mileage).toLocaleString()+" mi":"Service"}${s.notes?" • "+s.notes:""}`}));events.sort((a,b)=>b.date.localeCompare(a.date));if(c.purchaseDate)events.push({date:c.purchaseDate,title:`Got ${c.name||"the car"}`,sub:`First day${c.purchaseMileage?" • "+Number(c.purchaseMileage).toLocaleString()+" mi":""}`});ownedCard.innerHTML=c.purchaseDate?`<span class="status">Owned since ${formatDate(c.purchaseDate)}</span><br><b>${c.purchaseMileage?Number(c.purchaseMileage).toLocaleString()+" mi at purchase":"Purchase mileage not set"}</b>`:`<span class="status">Purchase timeline entry not set.</span>`;timelineList.innerHTML=events.map(e=>`<div class="timeline-entry"><div class="dot"></div><div><div class="timeline-title">${esc(e.title)}</div><div class="timeline-sub">${esc(e.sub)}</div></div><div class="timeline-date">${formatDate(e.date)}</div></div>`).join("")}
 function deletePurchaseEntry(){const c=activeCar();c.purchaseDate="";c.purchaseMileage="";save();render()}
+
+
+function deleteTimelineEvent(kind,id){
+  const c=activeCar();
+  if(!c) return;
+
+  if(kind==="purchase"){
+    c.purchaseDate="";
+    c.purchaseMileage="";
+  }else if(kind==="mod"){
+    const m=c.mods.find(x=>x.id===id);
+    if(m) m.date="";
+  }else if(kind==="service"){
+    const s=c.services.find(x=>x.id===id);
+    if(s) s.date="";
+  }
+
+  save();
+  renderTimeline();
+}
+
+let contextTimeline = {kind:null,id:null};
+
+function showTimelineContextMenu(event,kind,id){
+  event.preventDefault();
+  contextTimeline={kind,id};
+  if(confirm("Remove this from the timeline?")){
+    deleteTimelineEvent(kind,id);
+  }
+}
+
+function initTimelineSwipe(){
+  document.querySelectorAll(".timeline-swipe-wrap").forEach(wrap=>{
+    const target=wrap.querySelector(".timeline-swipe-target");
+    if(!target || target.dataset.swipeReady) return;
+    target.dataset.swipeReady="1";
+
+    let startX=0,startY=0,dx=0,dragging=false;
+
+    target.addEventListener("pointerdown", e=>{
+      startX=e.clientX;startY=e.clientY;dx=0;dragging=true;
+      target.setPointerCapture(e.pointerId);
+    });
+
+    target.addEventListener("pointermove", e=>{
+      if(!dragging) return;
+      dx=e.clientX-startX;
+      const dy=Math.abs(e.clientY-startY);
+      if(dy>35) return;
+      if(dx<0) target.style.transform=`translateX(${Math.max(dx,-112)}px)`;
+    });
+
+    target.addEventListener("pointerup", e=>{
+      if(!dragging) return;
+      dragging=false;
+      target.style.transform="";
+      if(dx<-55){
+        target.classList.add("swiped");
+        wrap.classList.add("show-delete");
+      }else if(dx>25){
+        target.classList.remove("swiped");
+        wrap.classList.remove("show-delete");
+      }
+    });
+  });
+}
 
 function showPage(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));btn.classList.add("active");window.scrollTo({top:0,behavior:"smooth"})}
 function handlePhotoFile(e,type){const file=e.target.files?.[0];if(!file)return;const r=new FileReader();r.onload=ev=>{if(type==="hero")activeCar().carImage=ev.target.result;save();render()};r.readAsDataURL(file)}
