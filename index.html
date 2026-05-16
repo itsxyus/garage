@@ -430,129 +430,20 @@ input[type=range]{accent-color:var(--accent)}
 }
 
 
-/* v1.5 fixes: My Garage nav, settings cleanup, services mobile fit, sort */
-#myGarageBtn{
-  position:relative;
-  z-index:120;
-}
-
-.settings-inline-row{
-  display:grid;
-  grid-template-columns:1fr auto;
-  gap:8px;
-  align-items:end;
-  margin-top:6px;
-}
-
-.settings-inline-row .color-row{
-  margin-top:0;
-}
-
-.settings-inline-row .btn{
-  height:42px;
-  white-space:nowrap;
-}
-
-.mini-toast{
-  position:fixed;
-  left:50%;
-  bottom:calc(86px + env(safe-area-inset-bottom));
-  transform:translateX(-50%);
-  z-index:999;
-  background:rgba(10,12,18,.86);
-  border:1px solid rgba(255,255,255,.14);
-  color:var(--text);
-  padding:10px 16px;
-  border-radius:999px;
-  backdrop-filter:blur(14px);
-  -webkit-backdrop-filter:blur(14px);
-  box-shadow:0 12px 32px rgba(0,0,0,.35);
-}
-
-#bgPhotoInput.real-file-input{
-  position:absolute !important;
-  width:1px !important;
-  height:1px !important;
-  opacity:0 !important;
-  pointer-events:none !important;
-  display:block !important;
-  margin:0 !important;
-  padding:0 !important;
-  border:0 !important;
-}
-
-#servicesPage .section{
-  width:100%;
-  max-width:100%;
-  overflow:hidden;
-}
-
-#servicesList{
-  width:100%;
-  max-width:100%;
-}
-
-.service-row{
-  width:100%;
-  max-width:100%;
-  overflow:hidden;
-}
-
-.service-row > div:first-child{
-  min-width:0;
-  max-width:100%;
-}
-
-.service-row .editor{
-  width:100%;
-  max-width:100%;
-  overflow:hidden;
-}
-
-.service-row .form-grid{
-  width:100%;
-  max-width:100%;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-}
-
-.service-row input,
-.service-row select,
-.service-row textarea{
-  min-width:0;
-  width:100%;
-  max-width:100%;
-}
-
-@media(max-width:720px){
-  .service-row{
-    grid-template-columns:1fr !important;
-    gap:8px;
-  }
-
-  .service-row .due{
-    text-align:left;
-    justify-self:start;
-  }
-
-  .service-row .form-grid{
-    grid-template-columns:1fr 1fr !important;
-    gap:9px;
-  }
-}
-
-@media(max-width:430px){
-  .service-row .form-grid{
-    grid-template-columns:1fr !important;
-  }
-
-  .settings-inline-row{
-    grid-template-columns:1fr;
-  }
-
-  .settings-inline-row .btn{
-    width:100%;
-  }
-}
+/* v1.6 fixes after v1.4: clean nav + settings + services + sort */
+#myGarageBtn{position:relative;z-index:120;}
+.settings-inline-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-top:6px;}
+.settings-inline-row .color-row{margin-top:0;}
+.settings-inline-row .btn{height:42px;white-space:nowrap;}
+.mini-toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:999;background:rgba(10,12,18,.86);border:1px solid rgba(255,255,255,.14);color:var(--text);padding:10px 16px;border-radius:999px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 12px 32px rgba(0,0,0,.35);}
+#bgPhotoInput.real-file-input{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;display:block!important;margin:0!important;padding:0!important;border:0!important;}
+#servicesPage .section,#servicesList,.service-row{width:100%;max-width:100%;overflow:hidden;}
+.service-row>div:first-child{min-width:0;max-width:100%;}
+.service-row .editor{width:100%;max-width:100%;overflow:hidden;}
+.service-row .form-grid{width:100%;max-width:100%;grid-template-columns:repeat(2,minmax(0,1fr));}
+.service-row input,.service-row select,.service-row textarea{min-width:0;width:100%;max-width:100%;}
+@media(max-width:720px){.service-row{grid-template-columns:1fr!important;gap:8px}.service-row .due{text-align:left;justify-self:start}.service-row .form-grid{grid-template-columns:1fr 1fr!important;gap:9px}}
+@media(max-width:430px){.service-row .form-grid{grid-template-columns:1fr!important}.settings-inline-row{grid-template-columns:1fr}.settings-inline-row .btn{width:100%}}
 
 </style>
 </head>
@@ -673,12 +564,7 @@ input[type=range]{accent-color:var(--accent)}
           <label>Engine<input id="setEngine" oninput="activeCar().engine=this.value;save();render()"></label>
           <label>Purchase Date<input id="setPurchaseDate" type="date" onchange="activeCar().purchaseDate=this.value;save();renderTimeline()" oninput="activeCar().purchaseDate=this.value;save();renderTimeline()"></label>
           <label>Purchase Mileage<input id="setPurchaseMileage" inputmode="numeric" oninput="activeCar().purchaseMileage=this.value;save();renderTimeline()"></label>
-          <label class="span2">Accent Color
-            <div class="settings-inline-row">
-              <div class="color-row"><input id="setAccent" type="color" oninput="activeCar().accent=this.value;save();render()"><span>Live theme</span></div>
-              <button class="btn red" type="button" onclick="saveCarInfo()">Save Car Info</button>
-            </div>
-          </label>
+          <label class="span2">Accent Color<div class="settings-inline-row"><div class="color-row"><input id="setAccent" type="color" oninput="activeCar().accent=this.value;save();render()"><span>Live theme</span></div><button class="btn red" type="button" onclick="saveCarInfo()">Save Car Info</button></div></label>
           <label class="span2">Background Opacity<input id="setBgOpacity" type="range" min=".25" max="1" step=".01" oninput="activeCar().backgroundOpacity=this.value;save();renderHero()"></label>
           <label class="span2">Background URL<input id="setBgUrl" oninput="activeCar().backgroundImage=this.value;save();renderHero()" placeholder="optional direct image link"></label>
           <label class="span2">Background Photo
@@ -1061,6 +947,25 @@ function openCar(id){
     alert("Open car failed: " + err.message);
   }
 }
+
+function goToGarageHome(event){
+  if(event){ event.preventDefault(); event.stopPropagation(); }
+  showGarageHome();
+  return false;
+}
+function showGarageHome(){
+  state.activeCarId=null;
+  localStorage.setItem(KEY,JSON.stringify(state));
+  const garage=document.getElementById("garageHome");
+  const car=document.getElementById("carApp");
+  const tabs=document.getElementById("bottomTabs");
+  if(car) car.classList.add("hidden");
+  if(tabs) tabs.classList.add("hidden");
+  if(garage) garage.classList.remove("hidden");
+  renderGarage();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
 function deleteActiveCar(){const c=activeCar();if(!c||!confirm("Delete this car and all its data?"))return;state.cars=state.cars.filter(x=>x.id!==c.id);state.activeCarId=null;save();showGarageHome()}
 
 function renderHero(){
@@ -1142,30 +1047,28 @@ function initGarageSwipe(){
 
 
 function saveCarInfo(){
-  const c = activeCar();
+  const c=activeCar();
   if(!c) return;
-
-  c.name = setCarName.value || c.name || "New Car";
-  c.year = setYear.value || "";
-  c.make = setMake.value || "";
-  c.model = setModel.value || "";
-  c.chassis = setChassis.value || "N/A";
-  c.engine = setEngine.value || "N/A";
-  c.purchaseDate = setPurchaseDate.value || "";
-  c.purchaseMileage = setPurchaseMileage.value || "";
-  c.accent = setAccent.value || "#ff3b3b";
-  c.backgroundOpacity = setBgOpacity.value || ".65";
-  c.backgroundImage = setBgUrl.value || c.backgroundImage || "";
-  c.goals = setGoals.value || "";
-
+  c.name=setCarName.value||c.name||"New Car";
+  c.year=setYear.value||"";
+  c.make=setMake.value||"";
+  c.model=setModel.value||"";
+  c.chassis=setChassis.value||"N/A";
+  c.engine=setEngine.value||"N/A";
+  c.purchaseDate=setPurchaseDate.value||"";
+  c.purchaseMileage=setPurchaseMileage.value||"";
+  c.accent=setAccent.value||"#ff3b3b";
+  c.backgroundOpacity=setBgOpacity.value||".65";
+  c.backgroundImage=setBgUrl.value||c.backgroundImage||"";
+  c.goals=setGoals.value||"";
   save();
   render();
-  const old = document.getElementById("carInfoSavedToast");
+  const old=document.getElementById("carInfoSavedToast");
   if(old) old.remove();
-  const t = document.createElement("div");
-  t.id = "carInfoSavedToast";
-  t.textContent = "Saved";
-  t.className = "mini-toast";
+  const t=document.createElement("div");
+  t.id="carInfoSavedToast";
+  t.className="mini-toast";
+  t.textContent="Saved";
   document.body.appendChild(t);
   setTimeout(()=>t.remove(),1200);
 }
@@ -1208,18 +1111,15 @@ function toggleEditor(id){document.getElementById(id)?.classList.toggle("open")}
 function sortCategory(cat,val){
   const c=activeCar();
   if(!c) return;
-
-  const belongs = m => (m.category || cat) === cat;
-  const arr = c.mods.filter(belongs);
-  const others = c.mods.filter(m => !belongs(m));
-
+  const belongs=m=>(m.category||cat)===cat;
+  const arr=c.mods.filter(belongs);
+  const others=c.mods.filter(m=>!belongs(m));
   if(val==="priceHigh") arr.sort((a,b)=>(parseFloat(b.price)||0)-(parseFloat(a.price)||0));
   else if(val==="priceLow") arr.sort((a,b)=>(parseFloat(a.price)||0)-(parseFloat(b.price)||0));
   else if(val==="dateDesc") arr.sort((a,b)=>(b.date||"0000-00-00").localeCompare(a.date||"0000-00-00"));
   else if(val==="dateAsc") arr.sort((a,b)=>(a.date||"9999-99-99").localeCompare(b.date||"9999-99-99"));
   else return;
-
-  c.mods = others.concat(arr);
+  c.mods=others.concat(arr);
   save();
   renderMods();
 }
@@ -1280,12 +1180,3 @@ load();render();initCloud();
 </script>
 </body>
 </html>
-function goToGarageHome(event){
-  if(event){
-    event.preventDefault();
-    event.stopPropagation();
-  }
-  showGarageHome();
-  return false;
-}
-
