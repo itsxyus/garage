@@ -1945,6 +1945,51 @@ body{
   color:var(--muted) !important;
 }
 
+
+/* v6.7 timeline visual upgrade: breathing dots */
+.timeline-entry .dot{
+  animation:dotBreathe 2.4s ease-in-out infinite;
+  transform-origin:center;
+}
+
+.timeline-entry:nth-child(2n) .dot{
+  animation-delay:.35s;
+}
+
+.timeline-entry:nth-child(3n) .dot{
+  animation-delay:.7s;
+}
+
+@keyframes dotBreathe{
+  0%,100%{
+    transform:scale(1);
+    box-shadow:0 0 10px color-mix(in srgb, var(--accent,#ff3b3b) 45%, transparent);
+  }
+  50%{
+    transform:scale(1.28);
+    box-shadow:0 0 20px color-mix(in srgb, var(--accent,#ff3b3b) 75%, transparent);
+  }
+}
+
+@supports not (color: color-mix(in srgb, red, transparent)){
+  @keyframes dotBreathe{
+    0%,100%{
+      transform:scale(1);
+      box-shadow:0 0 10px rgba(255,59,59,.45);
+    }
+    50%{
+      transform:scale(1.28);
+      box-shadow:0 0 20px rgba(255,59,59,.75);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .timeline-entry .dot{
+    animation:none !important;
+  }
+}
+
 </style>
 </head>
 <body>
