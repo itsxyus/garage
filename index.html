@@ -568,8 +568,7 @@ function modHTML(m){
       </label>
     </div>
     <div class="button-row">
-      <button class="btn" onclick="pickModPhoto('${m.id}')">Photo</button>
-      <button class="btn danger" onclick="deleteMod('${m.id}')">Delete</button>
+      <button class="btn danger" onclick="removeModPhoto('${m.id}')">Remove Photo</button><button class="btn danger" onclick="deleteMod('${m.id}')">Delete</button>
     </div>
   </div>`;
 }
@@ -813,7 +812,11 @@ function pickHeroPhoto(){
     save();
     renderHero();
     renderGarage();
-  }, {maxSide:1200, quality:.86, preserveTransparency:true});
+  }, {
+    maxSide:1000,
+    quality:.78,
+    preserveTransparency:true
+  });
 }
 function pickModPhoto(id){
   pickFile(src=>{
@@ -823,14 +826,31 @@ function pickModPhoto(id){
       save();
       renderMods();
     }
-  }, {maxSide:900, quality:.8, preserveTransparency:true});
+  }, {
+    maxSide:260,
+    quality:.42,
+    preserveTransparency:false
+  });
 }
+function removeModPhoto(id){
+  const m=activeCar().mods.find(x=>x.id===id);
+  if(!m)return;
+
+  m.image="";
+  save();
+  renderMods();
+}
+
 function pickBackgroundPhoto(){
   pickFile(src=>{
     activeCar().backgroundImage=src;
     save();
     renderHero();
-  }, {maxSide:1400, quality:.68, preserveTransparency:false});
+  }, {
+    maxSide:1100,
+    quality:.55,
+    preserveTransparency:false
+  });
 }
 function useHeroAsBackground(){if(!activeCar().carImage)return alert("Add a hero image first.");activeCar().backgroundImage=activeCar().carImage;save();renderHero()}
 function clearBackground(){activeCar().backgroundImage="";save();renderHero()}
