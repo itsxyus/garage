@@ -250,6 +250,70 @@ input[type=range]{accent-color:var(--accent)}
   transform:scale(1.08) translateY(-2px);
 }
 
+
+/* v3.8 smoother tab transitions */
+.page{
+  display:none;
+  opacity:0;
+  transform:translateY(8px) scale(.985);
+  filter:blur(2px);
+}
+
+.page.active{
+  display:block;
+  animation:smoothTabIn .24s cubic-bezier(.2,.8,.2,1) forwards;
+}
+
+.page.leaving{
+  display:block;
+  position:absolute;
+  left:0;
+  right:0;
+  top:0;
+  pointer-events:none;
+  animation:smoothTabOut .18s cubic-bezier(.2,.8,.2,1) forwards;
+}
+
+#carApp{
+  position:relative;
+}
+
+@keyframes smoothTabIn{
+  from{
+    opacity:0;
+    transform:translateY(8px) scale(.985);
+    filter:blur(2px);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0) scale(1);
+    filter:blur(0);
+  }
+}
+
+@keyframes smoothTabOut{
+  from{
+    opacity:1;
+    transform:translateY(0) scale(1);
+    filter:blur(0);
+  }
+  to{
+    opacity:0;
+    transform:translateY(-5px) scale(.985);
+    filter:blur(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .page.active,
+  .page.leaving{
+    animation:none !important;
+    opacity:1 !important;
+    transform:none !important;
+    filter:none !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -542,7 +606,25 @@ function renderTimeline(){const c=activeCar();if(!c)return;let ev=[];c.mods.filt
   const lastText=lastRecord?` <span style="color:var(--muted);font-weight:400">(Last Recorded: ${Number(lastRecord.mileage).toLocaleString()} mi • ${formatDate(lastRecord.date)})</span>`:"";
   ownedCard.innerHTML=c.purchaseDate?`<span class="status">Owned since ${formatDate(c.purchaseDate)}</span><br><b>${c.purchaseMileage?Number(c.purchaseMileage).toLocaleString()+" mi at purchase":"Purchase mileage not set"}${lastText}</b>`:`<span class="status">Purchase timeline entry not set.</span>`;timelineList.innerHTML=ev.map(e=>`<div class="timeline-entry"><div class="dot"></div><div><div class="timeline-title">${esc(e.title)}</div><div class="timeline-sub">${esc(e.sub)}</div></div><div class="timeline-date">${formatDate(e.date)}</div></div>`).join("")}
 
-function showPage(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));btn?.classList.add("active");window.scrollTo({top:0,behavior:"smooth"})}
+function showPage(id,btn){
+  const next = document.getElementById(id);
+  const current = document.querySelector("#carApp .page.active");
+
+  if(!next || current === next) return;
+
+  if(current){
+    current.classList.remove("active");
+    current.classList.add("leaving");
+    setTimeout(()=>current.classList.remove("leaving"),190);
+  }
+
+  next.classList.add("active");
+
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+
+  window.scrollTo({top:0,behavior:"smooth"});
+}
 function initSwipe(wrapperSel,targetSel){document.querySelectorAll(wrapperSel).forEach(w=>{const t=w.querySelector(targetSel);if(!t||t.dataset.ready)return;t.dataset.ready=1;let sx=0,sy=0,dx=0,drag=false;t.addEventListener("pointerdown",e=>{sx=e.clientX;sy=e.clientY;dx=0;drag=true;t.setPointerCapture(e.pointerId)});t.addEventListener("pointermove",e=>{if(!drag)return;dx=e.clientX-sx;if(Math.abs(e.clientY-sy)>35)return;if(dx<0)t.style.transform=`translateX(${Math.max(dx,-112)}px)`});t.addEventListener("pointerup",e=>{if(!drag)return;drag=false;t.style.transform="";if(dx<-55){t.classList.add("swiped");w.classList.add("show-delete")}else if(dx>25){t.classList.remove("swiped");w.classList.remove("show-delete")}})})}
 function pickFile(cb){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>{const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>cb(ev.target.result);r.readAsDataURL(f)};i.click()}
 function pickHeroPhoto(){pickFile(src=>{activeCar().carImage=src;save();renderHero();renderGarage()})}
