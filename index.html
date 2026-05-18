@@ -305,7 +305,7 @@ input[type=range]{accent-color:var(--accent)}
     <div id="servicesPage" class="page">
       <section class="section glass">
         <div class="section-head"><h2>Services</h2><button class="btn primary" onclick="addService()">＋ Add</button></div>
-        <div style="margin:12px 0"><label>Current Mileage<input id="currentMileage" type="number" oninput="activeCar().currentMileage=this.value;saveLocal();scheduleCloudSave();renderServices()"></label></div>
+        <div style="margin:12px 0"><label>Current Mileage<input id="currentMileage" type="number" oninput="activeCar().currentMileage=this.value;saveLocal();scheduleCloudSave()" onblur="renderServices();renderTotals()"></label></div>
         <div id="servicesList"></div>
       </section>
     </div>
@@ -427,7 +427,13 @@ function addService(){activeCar().services.push({id:uid(),name:"New Service",dat
 function deleteService(id){activeCar().services=activeCar().services.filter(s=>s.id!==id);save();renderServices();renderTotals();renderTimeline()}
 function dueInfo(s){const cur=parseInt(activeCar().currentMileage||"0"),done=parseInt(s.mileage||"0"),intv=parseInt(s.intervalMiles||"0");if(!cur||!done||!intv)return{text:"Add mileage",cls:"warn"};const left=done+intv-cur;if(left<=0)return{text:`Overdue ${Math.abs(left).toLocaleString()} mi`,cls:"bad"};if(left<=1000)return{text:`${left.toLocaleString()} mi left`,cls:"warn"};return{text:`${left.toLocaleString()} mi left`,cls:"good"}}
 function renderServices(){const c=activeCar();if(!c)return;currentMileage.value=c.currentMileage||"";servicesList.innerHTML=c.services.map(s=>{const d=dueInfo(s);return `<div class="service-row"><div><div class="service-title">${esc(s.name)}</div><div class="service-sub">${esc(s.date||"No date")} • ${s.mileage?Number(s.mileage).toLocaleString()+" mi":"No mileage"} • ${money(s.cost)}</div><div class="editor open" style="display:block;margin-top:10px"><div class="form-grid"><label>Service<input value="${esc(s.name)}" oninput="setService('${s.id}','name',this.value);renderTimeline()"></label><label>Date<input type="date" value="${esc(s.date)}" oninput="setService('${s.id}','date',this.value);renderTimeline()"></label><label>Mileage<input type="number" value="${esc(s.mileage)}" oninput="setService('${s.id}','mileage',this.value);renderTimeline();renderServices()"></label><label>Cost<input type="number" value="${esc(s.cost)}" oninput="setService('${s.id}','cost',this.value);renderTotals()"></label><label>Interval Miles<input type="number" value="${esc(s.intervalMiles)}" oninput="setService('${s.id}','intervalMiles',this.value);renderServices()"></label><label>Interval Months<input type="number" value="${esc(s.intervalMonths)}" oninput="setService('${s.id}','intervalMonths',this.value)"></label><label class="span2">Notes<input value="${esc(s.notes)}" oninput="setService('${s.id}','notes',this.value);renderTimeline()"></label></div><button class="btn danger" onclick="deleteService('${s.id}')">Delete</button></div></div><div class="due ${d.cls}">${d.text}</div></div>`}).join("")}
-function setService(id,k,v){const s=activeCar().services.find(x=>x.id===id);if(s){s[k]=v;save()}}
+function setService(id,k,v){
+  const s=activeCar().services.find(x=>x.id===id);
+  if(s){
+    s[k]=v;
+    save();
+  }
+}}
 
 function renderSettings(){const c=activeCar();if(!c)return;setName.value=c.name;setYear.value=c.year;setMake.value=c.make;setModel.value=c.model;setChassis.value=c.chassis;setEngine.value=c.engine;setPurchaseDate.value=c.purchaseDate;setPurchaseMileage.value=c.purchaseMileage;setAccent.value=c.accent;setBgOpacity.value=c.backgroundOpacity;setBgUrl.value=c.backgroundImage;setGoals.value=c.goals}
 function saveCarInfo(){const c=activeCar();if(!c)return;c.name=setName.value.trim()||"New Car";c.year=setYear.value.trim();c.make=setMake.value.trim();c.model=setModel.value.trim();c.chassis=setChassis.value.trim()||"N/A";c.engine=setEngine.value.trim()||"N/A";c.purchaseDate=setPurchaseDate.value;c.purchaseMileage=setPurchaseMileage.value.trim();c.accent=setAccent.value;c.backgroundOpacity=setBgOpacity.value;c.backgroundImage=setBgUrl.value.trim()||c.backgroundImage;c.goals=setGoals.value;save();renderHero();renderGarage();renderTimeline();renderSettings();toast("Car info saved")}
