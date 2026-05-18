@@ -423,7 +423,7 @@ input[type=range]{accent-color:var(--accent)}
         <div class="button-row" style="margin-top:14px">
           <button class="btn" onclick="pickBackgroundPhoto()">Background Photo</button>
           <button class="btn" onclick="useHeroAsBackground()">Use Hero</button>
-          <button class="btn danger" onclick="clearBackground()">Reset BG</button>
+          <button class="btn danger" onclick="clearBackground()">Reset BG</button><button class="btn danger" onclick="clearCarPhotos()">Clear Photos</button>
           <button class="btn danger" onclick="deleteActiveCar()">Delete Car</button>
           <button class="btn" onclick="saveCarInfo();saveCloudNow()">Save Cloud</button>
           <button class="btn" onclick="loadCloud()">Load Cloud</button>
@@ -462,7 +462,18 @@ function splitVehicleText(text){const p=String(text||"").trim().split(/\s+/).fil
 function normalizeCar(c={}){const sp=splitVehicleText(c.carModel||"");return {id:c.id||uid(),name:c.name||c.carName||"New Car",year:c.year||c.carYear||sp.year||"",make:c.make||c.carMake||sp.make||"",model:c.model||c.carModelName||sp.model||"",chassis:c.chassis||c.chassisCode||"N/A",engine:c.engine||c.engineCode||"N/A",purchaseDate:c.purchaseDate||"",purchaseMileage:c.purchaseMileage||"",currentMileage:c.currentMileage||"",currentMileageDate:c.currentMileageDate||"",goals:c.goals||"",accent:c.accent||c.accentColor||"#ff3b3b",backgroundImage:c.backgroundImage||"",backgroundOpacity:c.backgroundOpacity||".65",carImage:c.carImage||"",mods:Array.isArray(c.mods)?c.mods.map(m=>({id:m.id||uid(),category:m.category||"Cosmetics",name:m.name||"New Item",brand:m.brand||"",status:m.status||"Planned",price:m.price||"",date:m.date||"",image:m.image||"",notes:m.notes||""})):[],services:Array.isArray(c.services)?c.services.map(s=>({id:s.id||uid(),name:s.name||"Service",date:s.date||"",mileage:s.mileage||"",intervalMiles:s.intervalMiles||"",intervalMonths:s.intervalMonths||"",cost:s.cost||"",notes:s.notes||""})):[]}}
 function normalizeState(raw){if(!raw||typeof raw!=="object")return {cars:[],activeCarId:null};if(Array.isArray(raw.cars)){const cars=raw.cars.map(normalizeCar);return {cars,activeCarId:cars.some(c=>c.id===raw.activeCarId)?raw.activeCarId:null}}if(Array.isArray(raw.mods)||Array.isArray(raw.services)||raw.carName||raw.carModel)return {cars:[normalizeCar(raw)],activeCarId:null};return {cars:[],activeCarId:null}}
 function activeCar(){return state.cars.find(c=>c.id===state.activeCarId)||null}
-function saveLocal(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
+function saveLocal(){
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+  }catch(e){
+    if(e && (e.name==="QuotaExceededError" || String(e).includes("quota"))){
+      toast("Storage full. Try smaller photos or clear old ones.");
+      console.error("Local storage quota exceeded", e);
+    }else{
+      throw e;
+    }
+  }
+}
 function save(){saveLocal();scheduleCloudSave()}
 function loadLocal(){try{state=normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY)||"null"))}catch(e){state={cars:[],activeCarId:null}}}
 
@@ -626,12 +637,125 @@ function showPage(id,btn){
   window.scrollTo({top:0,behavior:"smooth"});
 }
 function initSwipe(wrapperSel,targetSel){document.querySelectorAll(wrapperSel).forEach(w=>{const t=w.querySelector(targetSel);if(!t||t.dataset.ready)return;t.dataset.ready=1;let sx=0,sy=0,dx=0,drag=false;t.addEventListener("pointerdown",e=>{sx=e.clientX;sy=e.clientY;dx=0;drag=true;t.setPointerCapture(e.pointerId)});t.addEventListener("pointermove",e=>{if(!drag)return;dx=e.clientX-sx;if(Math.abs(e.clientY-sy)>35)return;if(dx<0)t.style.transform=`translateX(${Math.max(dx,-112)}px)`});t.addEventListener("pointerup",e=>{if(!drag)return;drag=false;t.style.transform="";if(dx<-55){t.classList.add("swiped");w.classList.add("show-delete")}else if(dx>25){t.classList.remove("swiped");w.classList.remove("show-delete")}})})}
-function pickFile(cb){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>{const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>cb(ev.target.result);r.readAsDataURL(f)};i.click()}
-function pickHeroPhoto(){pickFile(src=>{activeCar().carImage=src;save();renderHero();renderGarage()})}
-function pickModPhoto(id){pickFile(src=>{const m=activeCar().mods.find(x=>x.id===id);if(m){m.image=src;save();renderMods()}})}
-function pickBackgroundPhoto(){pickFile(src=>{activeCar().backgroundImage=src;save();renderHero()})}
+
+function compressImageFile(file, options={}){
+  const maxSide = options.maxSide || 1200;
+  const quality = options.quality || 0.82;
+  const name = (file.name || "").toLowerCase();
+  const type = (file.type || "").toLowerCase();
+  const keepAlpha = options.preserveTransparency && (type.includes("png") || name.endsWith(".png") || type.includes("webp"));
+
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const img = new Image();
+
+      img.onload = () => {
+        let w = img.naturalWidth || img.width;
+        let h = img.naturalHeight || img.height;
+
+        if(w > maxSide || h > maxSide){
+          const ratio = Math.min(maxSide / w, maxSide / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d", {alpha:true});
+
+        if(keepAlpha){
+          ctx.clearRect(0,0,w,h);
+        }else{
+          ctx.fillStyle = "#050608";
+          ctx.fillRect(0,0,w,h);
+        }
+
+        ctx.drawImage(img,0,0,w,h);
+
+        let dataUrl = keepAlpha
+          ? canvas.toDataURL("image/webp", quality)
+          : canvas.toDataURL("image/jpeg", quality);
+
+        if(keepAlpha && !dataUrl.startsWith("data:image/webp")){
+          dataUrl = canvas.toDataURL("image/png");
+        }
+
+        resolve(dataUrl);
+      };
+
+      img.onerror = () => reject(new Error("Could not load image."));
+      img.src = reader.result;
+    };
+
+    reader.onerror = () => reject(new Error("Could not read image."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function pickFile(cb, options={}){
+  const i=document.createElement("input");
+  i.type="file";
+  i.accept="image/*";
+  i.onchange=async e=>{
+    const f=e.target.files?.[0];
+    if(!f)return;
+
+    try{
+      const dataUrl = await compressImageFile(f, options);
+      cb(dataUrl);
+    }catch(err){
+      console.error(err);
+      toast("Could not add that image.");
+    }
+  };
+  i.click();
+}
+function pickHeroPhoto(){
+  pickFile(src=>{
+    activeCar().carImage=src;
+    save();
+    renderHero();
+    renderGarage();
+  }, {maxSide:1200, quality:.86, preserveTransparency:true});
+}
+function pickModPhoto(id){
+  pickFile(src=>{
+    const m=activeCar().mods.find(x=>x.id===id);
+    if(m){
+      m.image=src;
+      save();
+      renderMods();
+    }
+  }, {maxSide:900, quality:.8, preserveTransparency:true});
+}
+function pickBackgroundPhoto(){
+  pickFile(src=>{
+    activeCar().backgroundImage=src;
+    save();
+    renderHero();
+  }, {maxSide:1400, quality:.68, preserveTransparency:false});
+}
 function useHeroAsBackground(){if(!activeCar().carImage)return alert("Add a hero image first.");activeCar().backgroundImage=activeCar().carImage;save();renderHero()}
 function clearBackground(){activeCar().backgroundImage="";save();renderHero()}
+function clearCarPhotos(){
+  const c=activeCar();
+  if(!c)return;
+  if(!confirm("Clear hero, background, and mod photos for this car?"))return;
+
+  c.carImage="";
+  c.backgroundImage="";
+  (c.mods||[]).forEach(m=>m.image="");
+
+  save();
+  renderHero();
+  renderGarage();
+  renderMods();
+  toast("Photos cleared");
+}
+
 function deleteActiveCar(){const c=activeCar();if(c)deleteCar(c.id)}
 
 loadLocal();
