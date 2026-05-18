@@ -21,7 +21,7 @@ body{
   color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
   background:
-    linear-gradient(rgba(4,5,8,.72),rgba(4,5,8,.84)),
+    linear-gradient(rgba(4,5,8,var(--bg-dim,.72)),rgba(4,5,8,calc(var(--bg-dim,.72) + .12))),
     var(--custom-bg,url("https://tailofthedragon.com/wp-content/uploads/2025/06/TODInfoTopFeaturedMaybe.jpg")) center/cover fixed no-repeat;
   padding:env(safe-area-inset-top) 14px calc(88px + env(safe-area-inset-bottom));
 }
@@ -236,9 +236,24 @@ input[type=range]{accent-color:var(--accent)}
   .timeline-entry{grid-template-columns:15px 1fr}
   .timeline-date{grid-column:2}
 }
+
+/* v3.6 small UI refinements */
+.home-hero{
+  min-height:455px;
+}
+
+.tabs [data-tab="home"]{
+  transform:scale(1.02);
+}
+
+.tabs [data-tab="home"].active{
+  transform:scale(1.08) translateY(-2px);
+}
+
 </style>
 </head>
 <body>
+<div id="fatalErrorBox" class="hidden" style="position:fixed;left:10px;right:10px;top:10px;z-index:9999;background:#2a1010;color:white;border:1px solid #ff5b63;border-radius:12px;padding:12px;font-family:system-ui"></div>
 <div id="authOverlay" class="auth-overlay hidden">
   <div class="auth-card glass">
     <h1>My Garage</h1>
@@ -292,11 +307,6 @@ input[type=range]{accent-color:var(--accent)}
           <div class="total-row"><span>Services</span><b id="serviceSpent">$0.00</b></div>
           <div class="total-row"><span>Planned</span><b id="plannedSpent">$0.00</b></div>
         </div>
-        <div class="home-quick-grid">
-          <button class="btn" onclick="showPage('modsPage',document.querySelector('[data-tab=mods]'))">Mods</button>
-          <button class="btn" onclick="showPage('servicesPage',document.querySelector('[data-tab=services]'))">Services</button>
-          <button class="btn" onclick="showPage('timelinePage',document.querySelector('[data-tab=timeline]'))">Timeline</button>
-        </div>
       </section>
     </div>
 
@@ -305,7 +315,7 @@ input[type=range]{accent-color:var(--accent)}
     <div id="servicesPage" class="page">
       <section class="section glass">
         <div class="section-head"><h2>Services</h2><button class="btn primary" onclick="addService()">＋ Add</button></div>
-        <div style="margin:12px 0"><label>Current Mileage<input id="currentMileage" type="number" oninput="activeCar().currentMileage=this.value;saveLocal();scheduleCloudSave()" onblur="renderServices();renderTotals()"></label></div>
+        <div style="margin:12px 0"><label>Current Mileage<input id="currentMileage" type="number" oninput="activeCar().currentMileage=this.value;activeCar().currentMileageDate=todayISO();saveLocal();scheduleCloudSave()" onblur="renderServices();renderTotals();renderTimeline()"></label></div>
         <div id="servicesList"></div>
       </section>
     </div>
@@ -342,7 +352,7 @@ input[type=range]{accent-color:var(--accent)}
           <label>Purchase Date<input id="setPurchaseDate" type="date"></label>
           <label>Purchase Mileage<input id="setPurchaseMileage" inputmode="numeric" placeholder="Mileage"></label>
           <label class="span2">Accent Color<div class="inline-save"><div class="color-row"><input id="setAccent" type="color"><span>Theme color</span></div><button class="btn primary" onclick="saveCarInfo()">Save Car Info</button></div></label>
-          <label class="span2">Background Opacity<input id="setBgOpacity" type="range" min=".25" max="1" step=".01"></label>
+          <label class="span2">Background Opacity<input id="setBgOpacity" type="range" min=".25" max="1" step=".01" oninput="activeCar().backgroundOpacity=this.value;save();renderHero()"></label>
           <label class="span2">Background URL<input id="setBgUrl" placeholder="Direct image URL"></label>
           <label class="full">Goals<textarea id="setGoals" placeholder="Goals / notes"></textarea></label>
         </div>
@@ -360,15 +370,16 @@ input[type=range]{accent-color:var(--accent)}
 </div>
 
 <nav id="tabs" class="tabs hidden">
-  <button class="tab active" data-tab="home" onclick="showPage('homePage',this)"><span class="ico">🏠</span><span class="txt">Home</span></button>
   <button class="tab" data-tab="mods" onclick="showPage('modsPage',this)"><span class="ico">🔧</span><span class="txt">Mods</span></button>
   <button class="tab" data-tab="services" onclick="showPage('servicesPage',this)"><span class="ico">🛠️</span><span class="txt">Services</span></button>
+  <button class="tab active" data-tab="home" onclick="showPage('homePage',this)"><span class="ico">🏠</span><span class="txt">Home</span></button>
   <button class="tab" data-tab="timeline" onclick="showPage('timelinePage',this)"><span class="ico">▣</span><span class="txt">Timeline</span></button>
   <button class="tab" data-tab="settings" onclick="showPage('settingsPage',this)"><span class="ico">⚙️</span><span class="txt">Settings</span></button>
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+window.addEventListener('error', e => { const box=document.getElementById('fatalErrorBox'); if(box){ box.classList.remove('hidden'); box.textContent='App error: '+(e.message||e); }});
 const SUPABASE_URL="https://dcmpjxpqjyxcgztrnrsn.supabase.co";
 const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjbXBqeHBxanl4Y2d6dHJucnNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MDY4NTYsImV4cCI6MjA5NDQ4Mjg1Nn0.H7wlpRbc5eT-b60oXQJ0nFm9_-V5NuTmUrFR3C8vU24";
 const STORAGE_KEY="my_garage_v3";
@@ -382,9 +393,9 @@ function money(v){const n=parseFloat(v);return isNaN(n)?"$0.00":n.toLocaleString
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function toast(msg){const old=document.querySelector(".toast");if(old)old.remove();const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),1300)}
 
-function blankCar(){return {id:uid(),name:"New Car",year:"",make:"",model:"",chassis:"N/A",engine:"N/A",purchaseDate:"",purchaseMileage:"",currentMileage:"",goals:"",accent:"#ff3b3b",backgroundImage:"",backgroundOpacity:".65",carImage:"",mods:[],services:[]}}
+function blankCar(){return {id:uid(),name:"New Car",year:"",make:"",model:"",chassis:"N/A",engine:"N/A",purchaseDate:"",purchaseMileage:"",currentMileage:"",currentMileageDate:"",goals:"",accent:"#ff3b3b",backgroundImage:"",backgroundOpacity:".65",carImage:"",mods:[],services:[]}}
 function splitVehicleText(text){const p=String(text||"").trim().split(/\s+/).filter(Boolean);const out={year:"",make:"",model:""};if(/^\d{4}$/.test(p[0]||""))out.year=p.shift();if(p.length){out.make=p.shift()||"";out.model=p.join(" ")}return out}
-function normalizeCar(c={}){const sp=splitVehicleText(c.carModel||"");return {id:c.id||uid(),name:c.name||c.carName||"New Car",year:c.year||c.carYear||sp.year||"",make:c.make||c.carMake||sp.make||"",model:c.model||c.carModelName||sp.model||"",chassis:c.chassis||c.chassisCode||"N/A",engine:c.engine||c.engineCode||"N/A",purchaseDate:c.purchaseDate||"",purchaseMileage:c.purchaseMileage||"",currentMileage:c.currentMileage||"",goals:c.goals||"",accent:c.accent||c.accentColor||"#ff3b3b",backgroundImage:c.backgroundImage||"",backgroundOpacity:c.backgroundOpacity||".65",carImage:c.carImage||"",mods:Array.isArray(c.mods)?c.mods.map(m=>({id:m.id||uid(),category:m.category||"Cosmetics",name:m.name||"New Item",brand:m.brand||"",status:m.status||"Planned",price:m.price||"",date:m.date||"",image:m.image||"",notes:m.notes||""})):[],services:Array.isArray(c.services)?c.services.map(s=>({id:s.id||uid(),name:s.name||"Service",date:s.date||"",mileage:s.mileage||"",intervalMiles:s.intervalMiles||"",intervalMonths:s.intervalMonths||"",cost:s.cost||"",notes:s.notes||""})):[]}}
+function normalizeCar(c={}){const sp=splitVehicleText(c.carModel||"");return {id:c.id||uid(),name:c.name||c.carName||"New Car",year:c.year||c.carYear||sp.year||"",make:c.make||c.carMake||sp.make||"",model:c.model||c.carModelName||sp.model||"",chassis:c.chassis||c.chassisCode||"N/A",engine:c.engine||c.engineCode||"N/A",purchaseDate:c.purchaseDate||"",purchaseMileage:c.purchaseMileage||"",currentMileage:c.currentMileage||"",currentMileageDate:c.currentMileageDate||"",goals:c.goals||"",accent:c.accent||c.accentColor||"#ff3b3b",backgroundImage:c.backgroundImage||"",backgroundOpacity:c.backgroundOpacity||".65",carImage:c.carImage||"",mods:Array.isArray(c.mods)?c.mods.map(m=>({id:m.id||uid(),category:m.category||"Cosmetics",name:m.name||"New Item",brand:m.brand||"",status:m.status||"Planned",price:m.price||"",date:m.date||"",image:m.image||"",notes:m.notes||""})):[],services:Array.isArray(c.services)?c.services.map(s=>({id:s.id||uid(),name:s.name||"Service",date:s.date||"",mileage:s.mileage||"",intervalMiles:s.intervalMiles||"",intervalMonths:s.intervalMonths||"",cost:s.cost||"",notes:s.notes||""})):[]}}
 function normalizeState(raw){if(!raw||typeof raw!=="object")return {cars:[],activeCarId:null};if(Array.isArray(raw.cars)){const cars=raw.cars.map(normalizeCar);return {cars,activeCarId:cars.some(c=>c.id===raw.activeCarId)?raw.activeCarId:null}}if(Array.isArray(raw.mods)||Array.isArray(raw.services)||raw.carName||raw.carModel)return {cars:[normalizeCar(raw)],activeCarId:null};return {cars:[],activeCarId:null}}
 function activeCar(){return state.cars.find(c=>c.id===state.activeCarId)||null}
 function saveLocal(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
@@ -413,7 +424,7 @@ function closeCarModal(){carModal.classList.add("hidden")}
 function saveCarFromModal(){let c=state.cars.find(x=>x.id===carModal.dataset.editId);if(!c){c=blankCar();state.cars.push(c)}c.name=modalName.value.trim()||"New Car";c.year=modalYear.value.trim();c.make=modalMake.value.trim();c.model=modalModel.value.trim();c.chassis=modalChassis.value.trim()||"N/A";c.engine=modalEngine.value.trim()||"N/A";c.purchaseDate=modalPurchaseDate.value;c.purchaseMileage=modalPurchaseMileage.value.trim();closeCarModal();state.activeCarId=c.id;save();showCarApp()}
 function deleteCar(id){const c=state.cars.find(x=>x.id===id);if(!c||!confirm("Delete "+(c.name||"this car")+"?"))return;state.cars=state.cars.filter(x=>x.id!==id);state.activeCarId=null;save();showGarage()}
 
-function renderHero(){const c=activeCar();if(!c)return;document.documentElement.style.setProperty("--accent",c.accent||"#ff3b3b");document.documentElement.style.setProperty("--custom-bg",c.backgroundImage?`url("${c.backgroundImage}")`:DEFAULT_BG);homeTitle.textContent="My "+(c.name||"Car");homeUpdated.textContent="Last updated • "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});carModelHero.textContent=[c.year,c.make,c.model].filter(Boolean).join(" ")||"Year Make Model";chassisTag.textContent=c.chassis||"N/A";engineTag.textContent=c.engine||"N/A";heroImg.src=c.carImage||fallbackImg;activeCarLabel.textContent=c.name||"Car Log"}
+function renderHero(){const c=activeCar();if(!c)return;document.documentElement.style.setProperty("--accent",c.accent||"#ff3b3b");document.documentElement.style.setProperty("--bg-dim", String(1 - parseFloat(c.backgroundOpacity || ".65") * .55));document.documentElement.style.setProperty("--custom-bg",c.backgroundImage?`url("${c.backgroundImage}")`:DEFAULT_BG);homeTitle.textContent="My "+(c.name||"Car");homeUpdated.textContent="Last updated • "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});carModelHero.textContent=[c.year,c.make,c.model].filter(Boolean).join(" ")||"Year Make Model";chassisTag.textContent=c.chassis||"N/A";engineTag.textContent=c.engine||"N/A";heroImg.src=c.carImage||fallbackImg;activeCarLabel.textContent=c.name||"Car Log"}
 function renderTotals(){const c=activeCar();if(!c)return;const paid=c.mods.filter(m=>m.status!=="Planned").reduce((a,m)=>a+(parseFloat(m.price)||0),0);const planned=c.mods.filter(m=>m.status==="Planned").reduce((a,m)=>a+(parseFloat(m.price)||0),0);const svc=c.services.reduce((a,s)=>a+(parseFloat(s.cost)||0),0);totalSpent.textContent=money(paid+svc);modSpent.textContent=money(paid);plannedSpent.textContent=money(planned);serviceSpent.textContent=money(svc);installedMods.textContent=c.mods.filter(m=>m.status==="Installed").length;plannedMods.textContent=c.mods.filter(m=>m.status==="Planned"||m.status==="Ordered").length;serviceAlerts.textContent=c.services.filter(s=>dueInfo(s).cls!=="good").length}
 
 function renderMods(){const c=activeCar();if(!c)return;modsPage.innerHTML=BASE_CATS.map(cat=>{let items=c.mods.filter(m=>(m.category||cat)===cat);const sort=sortPrefs[cat]||"";if(sort==="priceHigh")items=[...items].sort((a,b)=>(parseFloat(b.price)||0)-(parseFloat(a.price)||0));if(sort==="priceLow")items=[...items].sort((a,b)=>(parseFloat(a.price)||0)-(parseFloat(b.price)||0));if(sort==="dateDesc")items=[...items].sort((a,b)=>(b.date||"").localeCompare(a.date||""));if(sort==="dateAsc")items=[...items].sort((a,b)=>(a.date||"").localeCompare(b.date||""));return `<section class="section glass"><div class="section-head"><h2>${cat}</h2><div class="section-controls"><select class="sort-select" onchange="sortPrefs['${cat}']=this.value;renderMods()"><option value="">Sort By</option><option value="priceHigh" ${sort==="priceHigh"?"selected":""}>Price High → Low</option><option value="priceLow" ${sort==="priceLow"?"selected":""}>Price Low → High</option><option value="dateDesc" ${sort==="dateDesc"?"selected":""}>Date ↓</option><option value="dateAsc" ${sort==="dateAsc"?"selected":""}>Date ↑</option></select><button class="btn primary" onclick="addMod('${cat}')">＋ Add Item</button></div></div>${items.length?items.map(modHTML).join(""):`<div class="empty-cat" onclick="addMod('${cat}')"><div class="empty-thumb">N/A</div><div><b>No items yet</b><div class="sub">Tap to add first item</div></div></div>`}</section>`}).join("");initSwipe(".mod-wrap",".mod-card")}
@@ -426,20 +437,110 @@ function toggleEditor(id){document.getElementById(id)?.classList.toggle("open")}
 function addService(){activeCar().services.push({id:uid(),name:"New Service",date:"",mileage:"",intervalMiles:"",intervalMonths:"",cost:"",notes:""});save();renderServices();renderTotals()}
 function deleteService(id){activeCar().services=activeCar().services.filter(s=>s.id!==id);save();renderServices();renderTotals();renderTimeline()}
 function dueInfo(s){const cur=parseInt(activeCar().currentMileage||"0"),done=parseInt(s.mileage||"0"),intv=parseInt(s.intervalMiles||"0");if(!cur||!done||!intv)return{text:"Add mileage",cls:"warn"};const left=done+intv-cur;if(left<=0)return{text:`Overdue ${Math.abs(left).toLocaleString()} mi`,cls:"bad"};if(left<=1000)return{text:`${left.toLocaleString()} mi left`,cls:"warn"};return{text:`${left.toLocaleString()} mi left`,cls:"good"}}
-function renderServices(){const c=activeCar();if(!c)return;currentMileage.value=c.currentMileage||"";servicesList.innerHTML=c.services.map(s=>{const d=dueInfo(s);return `<div class="service-row"><div><div class="service-title">${esc(s.name)}</div><div class="service-sub">${esc(s.date||"No date")} • ${s.mileage?Number(s.mileage).toLocaleString()+" mi":"No mileage"} • ${money(s.cost)}</div><div class="editor open" style="display:block;margin-top:10px"><div class="form-grid"><label>Service<input value="${esc(s.name)}" oninput="setService('${s.id}','name',this.value);renderTimeline()"></label><label>Date<input type="date" value="${esc(s.date)}" oninput="setService('${s.id}','date',this.value);renderTimeline()"></label><label>Mileage<input type="number" value="${esc(s.mileage)}" oninput="setService('${s.id}','mileage',this.value);renderTimeline();renderServices()"></label><label>Cost<input type="number" value="${esc(s.cost)}" oninput="setService('${s.id}','cost',this.value);renderTotals()"></label><label>Interval Miles<input type="number" value="${esc(s.intervalMiles)}" oninput="setService('${s.id}','intervalMiles',this.value);renderServices()"></label><label>Interval Months<input type="number" value="${esc(s.intervalMonths)}" oninput="setService('${s.id}','intervalMonths',this.value)"></label><label class="span2">Notes<input value="${esc(s.notes)}" oninput="setService('${s.id}','notes',this.value);renderTimeline()"></label></div><button class="btn danger" onclick="deleteService('${s.id}')">Delete</button></div></div><div class="due ${d.cls}">${d.text}</div></div>`}).join("")}
+function renderServices(){
+  const c = activeCar();
+  if(!c) return;
+
+  currentMileage.value = c.currentMileage || "";
+
+  servicesList.innerHTML = c.services.map(s => {
+    const d = dueInfo(s);
+    const mileageText = s.mileage ? Number(s.mileage).toLocaleString() + " mi" : "No mileage";
+
+    return `
+      <div class="service-row">
+        <div>
+          <div class="service-title">${esc(s.name)}</div>
+          <div class="service-sub">${esc(s.date || "No date")} • ${mileageText} • ${money(s.cost)}</div>
+
+          <div class="editor open" style="display:block;margin-top:10px">
+            <div class="form-grid">
+              <label>Service
+                <input value="${esc(s.name)}" 
+                  oninput="setService('${s.id}','name',this.value)" 
+                  onblur="renderServices();renderTimeline()">
+              </label>
+
+              <label>Date
+                <input type="date" value="${esc(s.date)}" 
+                  onchange="setService('${s.id}','date',this.value);renderServices();renderTimeline()">
+              </label>
+
+              <label>Mileage
+                <input type="number" value="${esc(s.mileage)}" 
+                  oninput="setService('${s.id}','mileage',this.value)" 
+                  onblur="renderServices();renderTimeline()">
+              </label>
+
+              <label>Cost
+                <input type="number" value="${esc(s.cost)}" 
+                  oninput="setService('${s.id}','cost',this.value);renderTotals()">
+              </label>
+
+              <label>Interval Miles
+                <input type="number" value="${esc(s.intervalMiles)}" 
+                  oninput="setService('${s.id}','intervalMiles',this.value)" 
+                  onblur="renderServices()">
+              </label>
+
+              <label>Interval Months
+                <input type="number" value="${esc(s.intervalMonths)}" 
+                  oninput="setService('${s.id}','intervalMonths',this.value)">
+              </label>
+
+              <label class="span2">Notes
+                <input value="${esc(s.notes)}" 
+                  oninput="setService('${s.id}','notes',this.value)" 
+                  onblur="renderTimeline()">
+              </label>
+            </div>
+
+            <button class="btn danger" onclick="deleteService('${s.id}')">Delete</button>
+          </div>
+        </div>
+
+        <div class="due ${d.cls}">${d.text}</div>
+      </div>
+    `;
+  }).join("");
+}
 function setService(id,k,v){
-  const s=activeCar().services.find(x=>x.id===id);
+  const s = activeCar().services.find(x => x.id === id);
   if(s){
-    s[k]=v;
+    s[k] = v;
     save();
   }
-}}
+}
 
 function renderSettings(){const c=activeCar();if(!c)return;setName.value=c.name;setYear.value=c.year;setMake.value=c.make;setModel.value=c.model;setChassis.value=c.chassis;setEngine.value=c.engine;setPurchaseDate.value=c.purchaseDate;setPurchaseMileage.value=c.purchaseMileage;setAccent.value=c.accent;setBgOpacity.value=c.backgroundOpacity;setBgUrl.value=c.backgroundImage;setGoals.value=c.goals}
 function saveCarInfo(){const c=activeCar();if(!c)return;c.name=setName.value.trim()||"New Car";c.year=setYear.value.trim();c.make=setMake.value.trim();c.model=setModel.value.trim();c.chassis=setChassis.value.trim()||"N/A";c.engine=setEngine.value.trim()||"N/A";c.purchaseDate=setPurchaseDate.value;c.purchaseMileage=setPurchaseMileage.value.trim();c.accent=setAccent.value;c.backgroundOpacity=setBgOpacity.value;c.backgroundImage=setBgUrl.value.trim()||c.backgroundImage;c.goals=setGoals.value;save();renderHero();renderGarage();renderTimeline();renderSettings();toast("Car info saved")}
 
+
+
+function todayISO(){
+  const d = new Date();
+  const offset = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - offset * 60000);
+  return local.toISOString().slice(0,10);
+}
+
+function getLastRecordedMileage(c){
+  if(!c || !c.currentMileage) return null;
+
+  const mileage = parseFloat(c.currentMileage);
+  if(isNaN(mileage)) return null;
+
+  return {
+    mileage,
+    date:c.currentMileageDate || todayISO(),
+    label:"currentMileage"
+  };
+}
+
 function formatDate(d){try{return new Date(d+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}catch(e){return d}}
-function renderTimeline(){const c=activeCar();if(!c)return;let ev=[];c.mods.filter(m=>m.date).forEach(m=>ev.push({date:m.date,title:m.name,sub:`${m.category}${m.price?" • "+money(m.price):""}`}));c.services.filter(s=>s.date).forEach(s=>ev.push({date:s.date,title:s.name,sub:`${s.mileage?Number(s.mileage).toLocaleString()+" mi":"Service"}${s.notes?" • "+s.notes:""}`}));ev.sort((a,b)=>b.date.localeCompare(a.date));if(c.purchaseDate)ev.push({date:c.purchaseDate,title:`Got ${c.name}`,sub:`First day${c.purchaseMileage?" • "+Number(c.purchaseMileage).toLocaleString()+" mi":""}`});ownedCard.innerHTML=c.purchaseDate?`<span class="status">Owned since ${formatDate(c.purchaseDate)}</span><br><b>${c.purchaseMileage?Number(c.purchaseMileage).toLocaleString()+" mi at purchase":"Purchase mileage not set"}</b>`:`<span class="status">Purchase timeline entry not set.</span>`;timelineList.innerHTML=ev.map(e=>`<div class="timeline-entry"><div class="dot"></div><div><div class="timeline-title">${esc(e.title)}</div><div class="timeline-sub">${esc(e.sub)}</div></div><div class="timeline-date">${formatDate(e.date)}</div></div>`).join("")}
+function renderTimeline(){const c=activeCar();if(!c)return;let ev=[];c.mods.filter(m=>m.date).forEach(m=>ev.push({date:m.date,title:m.name,sub:`${m.category}${m.price?" • "+money(m.price):""}`}));c.services.filter(s=>s.date).forEach(s=>ev.push({date:s.date,title:s.name,sub:`${s.mileage?Number(s.mileage).toLocaleString()+" mi":"Service"}${s.notes?" • "+s.notes:""}`}));ev.sort((a,b)=>b.date.localeCompare(a.date));if(c.purchaseDate)ev.push({date:c.purchaseDate,title:`Got ${c.name}`,sub:`First day${c.purchaseMileage?" • "+Number(c.purchaseMileage).toLocaleString()+" mi":""}`});const lastRecord=getLastRecordedMileage(c);
+  const lastText=lastRecord?` <span style="color:var(--muted);font-weight:400">(Last Recorded: ${Number(lastRecord.mileage).toLocaleString()} mi • ${formatDate(lastRecord.date)})</span>`:"";
+  ownedCard.innerHTML=c.purchaseDate?`<span class="status">Owned since ${formatDate(c.purchaseDate)}</span><br><b>${c.purchaseMileage?Number(c.purchaseMileage).toLocaleString()+" mi at purchase":"Purchase mileage not set"}${lastText}</b>`:`<span class="status">Purchase timeline entry not set.</span>`;timelineList.innerHTML=ev.map(e=>`<div class="timeline-entry"><div class="dot"></div><div><div class="timeline-title">${esc(e.title)}</div><div class="timeline-sub">${esc(e.sub)}</div></div><div class="timeline-date">${formatDate(e.date)}</div></div>`).join("")}
 
 function showPage(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));btn?.classList.add("active");window.scrollTo({top:0,behavior:"smooth"})}
 function initSwipe(wrapperSel,targetSel){document.querySelectorAll(wrapperSel).forEach(w=>{const t=w.querySelector(targetSel);if(!t||t.dataset.ready)return;t.dataset.ready=1;let sx=0,sy=0,dx=0,drag=false;t.addEventListener("pointerdown",e=>{sx=e.clientX;sy=e.clientY;dx=0;drag=true;t.setPointerCapture(e.pointerId)});t.addEventListener("pointermove",e=>{if(!drag)return;dx=e.clientX-sx;if(Math.abs(e.clientY-sy)>35)return;if(dx<0)t.style.transform=`translateX(${Math.max(dx,-112)}px)`});t.addEventListener("pointerup",e=>{if(!drag)return;drag=false;t.style.transform="";if(dx<-55){t.classList.add("swiped");w.classList.add("show-delete")}else if(dx>25){t.classList.remove("swiped");w.classList.remove("show-delete")}})})}
