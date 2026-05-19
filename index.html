@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -444,6 +443,20 @@ input[type=range]{accent-color:var(--accent)}
   }
 }
 
+
+/* v4.7 cloud auth recovery */
+.auth-actions{
+  grid-template-columns:1fr 1fr !important;
+}
+.auth-actions .guest{
+  grid-column:auto !important;
+}
+@media(max-width:430px){
+  .auth-actions{
+    grid-template-columns:1fr !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -457,7 +470,7 @@ input[type=range]{accent-color:var(--accent)}
     <div class="auth-actions">
       <button class="btn primary" onclick="signIn()">Log In</button>
       <button class="btn" onclick="signUp()">Sign Up</button>
-      <button class="btn guest" onclick="guestMode()">Continue as Guest</button>
+      <button class="btn guest" onclick="guestMode()">Continue as Guest</button><button class="btn guest" onclick="resetCloudLogin()">Reset Login</button>
     </div>
     <p id="authStatus" class="status">Cloud sync ready.</p>
   </div>
@@ -607,17 +620,179 @@ function saveLocal(){
 function save(){saveLocal();scheduleCloudSave()}
 function loadLocal(){try{state=normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY)||"null"))}catch(e){state={cars:[],activeCarId:null}}}
 
-async function initCloud(){try{cloud=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const s=await cloud.auth.getSession();user=s.data.session?.user||null;cloud.auth.onAuthStateChange(async(e,session)=>{user=session?.user||null;if(user){hideAuth();await loadCloud(true)}else if(!guest)showAuth()});if(user){hideAuth();await loadCloud(true)}else showAuth()}catch(e){console.error(e);showAuth();setStatus("Cloud unavailable • local mode")}}
+
+function clearSupabaseAuthStorage(){
+  try{
+    Object.keys(localStorage).forEach(k=>{
+      if(k.includes("supabase") || k.includes("sb-")){
+        localStorage.removeItem(k);
+      }
+    });
+  }catch(e){
+    console.warn("Could not clear auth storage", e);
+  }
+}
+
+async function resetCloudLogin(){
+  clearSupabaseAuthStorage();
+  try{
+    if(cloud) await cloud.auth.signOut({scope:"local"});
+  }catch(e){
+    console.warn(e);
+  }
+  user=null;
+  guest=false;
+  showAuth();
+  setStatus("Login reset. Sign in again.");
+}
+
+function isBadRefreshTokenError(e){
+  const msg = String(e?.message || e || "").toLowerCase();
+  const code = String(e?.code || "").toLowerCase();
+  return msg.includes("refresh token") || code.includes("refresh_token");
+}
+
+async function initCloud(){
+  try{
+    cloud=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
+      auth:{
+        persistSession:true,
+        autoRefreshToken:true,
+        detectSessionInUrl:true
+      }
+    });
+
+    const s=await cloud.auth.getSession();
+    user=s.data.session?.user||null;
+
+    cloud.auth.onAuthStateChange(async(e,session)=>{
+      user=session?.user||null;
+
+      if(user){
+        hideAuth();
+        await loadCloud(true);
+      }else if(!guest){
+        showAuth();
+      }
+    });
+
+    if(user){
+      hideAuth();
+      await loadCloud(true);
+    }else{
+      showAuth();
+      setStatus("Sign in or continue as guest.");
+    }
+  }catch(e){
+    console.error(e);
+
+    if(isBadRefreshTokenError(e)){
+      clearSupabaseAuthStorage();
+      user=null;
+      guest=false;
+      showAuth();
+      setStatus("Session expired. Log in again.");
+      return;
+    }
+
+    showAuth();
+    setStatus("Cloud unavailable • local mode");
+  }
+}
 function showAuth(){authOverlay.classList.remove("hidden")}
 function hideAuth(){authOverlay.classList.add("hidden")}
 function setStatus(t){cloudStatus.textContent=t;authStatus.textContent=t}
 async function signUp(){const email=authEmail.value.trim(),password=authPassword.value;if(!email||password.length<6)return alert("Use email + 6 character password.");const r=await cloud.auth.signUp({email,password});if(r.error)return alert(r.error.message);if(r.data.session){user=r.data.user;hideAuth();await saveCloudNow(true)}else setStatus("Check email, then log in.")}
 async function signIn(){const email=authEmail.value.trim(),password=authPassword.value;const r=await cloud.auth.signInWithPassword({email,password});if(r.error)return alert(r.error.message);user=r.data.user;hideAuth();await loadCloud(true)}
 function guestMode(){guest=true;hideAuth();setStatus("Guest mode • saved on this device");render()}
-async function signOut(){guest=false;if(cloud)await cloud.auth.signOut();user=null;state.activeCarId=null;showAuth();render()}
+async function signOut(){
+  guest=false;
+  try{
+    if(cloud) await cloud.auth.signOut({scope:"local"});
+  }catch(e){
+    console.warn(e);
+  }
+  clearSupabaseAuthStorage();
+  user=null;
+  state.activeCarId=null;
+  showAuth();
+  render();
+  setStatus("Signed out.");
+}
 function scheduleCloudSave(){if(!user||guest)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>saveCloudNow(true),900)}
-async function saveCloudNow(silent=false){if(!user){if(!silent)alert("Log in first.");return}const r=await cloud.from("garage_data").upsert({user_id:user.id,data:state,updated_at:new Date().toISOString()},{onConflict:"user_id"});if(r.error){console.error(r.error);if(!silent)alert(r.error.message);setStatus("Cloud save failed. Local saved.");return}setStatus("Cloud saved • "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}))}
-async function loadCloud(auto=false){if(!user){if(!auto)alert("Log in first.");return}const r=await cloud.from("garage_data").select("data,updated_at").eq("user_id",user.id).maybeSingle();if(r.error){console.error(r.error);setStatus("Cloud load failed. Local mode.");return}if(r.data?.data){state=normalizeState(r.data.data);saveLocal();render();setStatus("Cloud loaded • "+new Date(r.data.updated_at).toLocaleString())}else{saveLocal();await saveCloudNow(true);render()}}
+async function saveCloudNow(silent=false){
+  if(!user){
+    if(!silent)alert("Log in first.");
+    return;
+  }
+
+  try{
+    const r=await cloud
+      .from("garage_data")
+      .upsert({
+        user_id:user.id,
+        data:state,
+        updated_at:new Date().toISOString()
+      },{onConflict:"user_id"});
+
+    if(r.error) throw r.error;
+
+    setStatus("Cloud saved • "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}));
+  }catch(e){
+    console.error(e);
+
+    if(isBadRefreshTokenError(e)){
+      clearSupabaseAuthStorage();
+      user=null;
+      showAuth();
+      setStatus("Session expired. Log in again.");
+      return;
+    }
+
+    if(!silent)alert(e.message || "Cloud save failed.");
+    setStatus("Cloud save failed. Local saved.");
+  }
+}
+async function loadCloud(auto=false){
+  if(!user){
+    if(!auto)alert("Log in first.");
+    return;
+  }
+
+  try{
+    const r=await cloud
+      .from("garage_data")
+      .select("data,updated_at")
+      .eq("user_id",user.id)
+      .maybeSingle();
+
+    if(r.error) throw r.error;
+
+    if(r.data?.data){
+      state=normalizeState(r.data.data);
+      saveLocal();
+      render();
+      setStatus("Cloud loaded • "+new Date(r.data.updated_at).toLocaleString());
+    }else{
+      saveLocal();
+      await saveCloudNow(true);
+      render();
+    }
+  }catch(e){
+    console.error(e);
+
+    if(isBadRefreshTokenError(e)){
+      clearSupabaseAuthStorage();
+      user=null;
+      showAuth();
+      setStatus("Session expired. Log in again.");
+      return;
+    }
+
+    setStatus("Cloud load failed. Local mode.");
+    if(!auto) alert(e.message || "Cloud load failed.");
+  }
+}
 
 function render(){activeCar()?showCarApp():showGarage()}
 function showGarage(){state.activeCarId=null;saveLocal();carApp.classList.add("hidden");tabs.classList.add("hidden");garageHome.classList.remove("hidden");renderGarage();window.scrollTo({top:0,behavior:"smooth"})}
