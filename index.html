@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -457,6 +458,57 @@ input[type=range]{accent-color:var(--accent)}
   }
 }
 
+
+/* v4.8 reliable sync status */
+.sync-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-top:7px;
+  padding:5px 9px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  color:var(--muted);
+  background:rgba(255,255,255,.04);
+  font-size:.78rem;
+  line-height:1;
+}
+
+.sync-pill.saving{
+  color:#ffdf8a;
+  border-color:rgba(255,204,77,.35);
+}
+
+.sync-pill.saved{
+  color:#8cffb8;
+  border-color:rgba(84,219,141,.35);
+}
+
+.sync-pill.error{
+  color:#ff9aa0;
+  border-color:rgba(255,91,99,.4);
+}
+
+.sync-pill.local{
+  color:var(--muted);
+}
+
+.topbar > .button-row{
+  justify-content:flex-end;
+  flex-wrap:nowrap;
+}
+
+@media(max-width:520px){
+  .topbar{
+    align-items:flex-start;
+  }
+
+  .topbar > .button-row{
+    flex-direction:column;
+    align-items:stretch;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -495,7 +547,7 @@ input[type=range]{accent-color:var(--accent)}
 
 <div class="app">
   <div id="garageHome">
-    <div class="topbar"><div><h1>My Garage</h1><div class="status" id="cloudStatus">Local mode</div></div><button class="btn danger" onclick="signOut()">Log Out</button></div>
+    <div class="topbar"><div><h1>My Garage</h1><div class="status" id="cloudStatus">Local mode</div><div class="sync-pill" id="syncStatus">Sync idle</div></div><div class="button-row" style="margin:0"><button class="btn" onclick="forceCloudSave()">Save Now</button><button class="btn danger" onclick="signOut()">Log Out</button></div></div>
     <div class="garage-grid" id="garageList"></div>
   </div>
 
@@ -568,7 +620,7 @@ input[type=range]{accent-color:var(--accent)}
           <button class="btn" onclick="useHeroAsBackground()">Use Hero</button>
           <button class="btn danger" onclick="clearBackground()">Reset BG</button><button class="btn danger" onclick="clearActiveCarPhotos()">Clear Car Photos</button><button class="btn danger" onclick="clearAllStoredPhotos()">Clear ALL Photos</button>
           <button class="btn danger" onclick="deleteActiveCar()">Delete Car</button>
-          <button class="btn" onclick="saveCarInfo();saveCloudNow()">Save Cloud</button>
+          <button class="btn" onclick="saveCarInfo();forceCloudSave()">Force Cloud Save</button>
           <button class="btn" onclick="loadCloud()">Load Cloud</button>
         </div>
       </section>
@@ -593,7 +645,7 @@ const STORAGE_KEY="my_garage_v3";
 const BASE_CATS=["Cosmetics","Performance","Handling"];
 const DEFAULT_BG='url("https://tailofthedragon.com/wp-content/uploads/2025/06/TODInfoTopFeaturedMaybe.jpg")';
 const fallbackImg="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='260'%3E%3Crect width='100%25' height='100%25' rx='28' fill='%230b0d11'/%3E%3Cpath d='M62 165 C92 110,145 95,232 110 C292 120,322 146,343 166' fill='none' stroke='%23ff3b3b' stroke-width='9' stroke-linecap='round'/%3E%3Ctext x='200' y='72' fill='white' text-anchor='middle' font-family='Arial' font-size='28' font-weight='700'%3EGarage%3C/text%3E%3C/svg%3E";
-let state={cars:[],activeCarId:null},cloud=null,user=null,cloudTimer=null,guest=false,sortPrefs={};
+let state={cars:[],activeCarId:null},cloud=null,user=null,cloudTimer=null,guest=false,sortPrefs={},cloudSaving=false,cloudSavePending=false,lastCloudSaveAt=null;
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
 function money(v){const n=parseFloat(v);return isNaN(n)?"$0.00":n.toLocaleString(undefined,{style:"currency",currency:"USD"})}
@@ -617,7 +669,10 @@ function saveLocal(){
     }
   }
 }
-function save(){saveLocal();scheduleCloudSave()}
+function save(){
+  saveLocal();
+  queueCloudSave();
+}
 function loadLocal(){try{state=normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY)||"null"))}catch(e){state={cars:[],activeCarId:null}}}
 
 
@@ -702,6 +757,12 @@ async function initCloud(){
 function showAuth(){authOverlay.classList.remove("hidden")}
 function hideAuth(){authOverlay.classList.add("hidden")}
 function setStatus(t){cloudStatus.textContent=t;authStatus.textContent=t}
+function setSyncStatus(t, cls=""){
+  const el=document.getElementById("syncStatus");
+  if(!el)return;
+  el.textContent=t;
+  el.className="sync-pill " + cls;
+}
 async function signUp(){const email=authEmail.value.trim(),password=authPassword.value;if(!email||password.length<6)return alert("Use email + 6 character password.");const r=await cloud.auth.signUp({email,password});if(r.error)return alert(r.error.message);if(r.data.session){user=r.data.user;hideAuth();await saveCloudNow(true)}else setStatus("Check email, then log in.")}
 async function signIn(){const email=authEmail.value.trim(),password=authPassword.value;const r=await cloud.auth.signInWithPassword({email,password});if(r.error)return alert(r.error.message);user=r.data.user;hideAuth();await loadCloud(true)}
 function guestMode(){guest=true;hideAuth();setStatus("Guest mode • saved on this device");render()}
@@ -719,25 +780,58 @@ async function signOut(){
   render();
   setStatus("Signed out.");
 }
-function scheduleCloudSave(){if(!user||guest)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>saveCloudNow(true),900)}
-async function saveCloudNow(silent=false){
+function scheduleCloudSave(){
+  queueCloudSave();
+}
+
+function queueCloudSave(){
+  if(!user || guest){
+    setSyncStatus("Local only", "local");
+    return;
+  }
+
+  cloudSavePending = true;
+  setSyncStatus("Saving…", "saving");
+
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(()=>saveCloudNow(true), 250);
+}
+
+async function forceCloudSave(){
+  await saveCloudNow(false, true);
+}
+async function saveCloudNow(silent=false, force=false){
   if(!user){
+    setSyncStatus("Not signed in", "error");
     if(!silent)alert("Log in first.");
     return;
   }
 
+  if(cloudSaving && !force){
+    cloudSavePending = true;
+    return;
+  }
+
+  cloudSaving = true;
+  cloudSavePending = false;
+  setSyncStatus("Saving…", "saving");
+
   try{
+    const snapshot = JSON.parse(JSON.stringify(state));
+
     const r=await cloud
       .from("garage_data")
       .upsert({
         user_id:user.id,
-        data:state,
+        data:snapshot,
         updated_at:new Date().toISOString()
       },{onConflict:"user_id"});
 
     if(r.error) throw r.error;
 
-    setStatus("Cloud saved • "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}));
+    lastCloudSaveAt = new Date();
+    setStatus("Cloud saved • "+lastCloudSaveAt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}));
+    setSyncStatus("Saved • "+lastCloudSaveAt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}), "saved");
   }catch(e){
     console.error(e);
 
@@ -746,11 +840,22 @@ async function saveCloudNow(silent=false){
       user=null;
       showAuth();
       setStatus("Session expired. Log in again.");
+      setSyncStatus("Login expired", "error");
+      cloudSaving=false;
       return;
     }
 
-    if(!silent)alert(e.message || "Cloud save failed.");
+    setSyncStatus("Save failed", "error");
     setStatus("Cloud save failed. Local saved.");
+
+    if(!silent)alert(e.message || "Cloud save failed.");
+  }finally{
+    cloudSaving=false;
+
+    if(cloudSavePending){
+      cloudSavePending=false;
+      setTimeout(()=>saveCloudNow(true), 350);
+    }
   }
 }
 async function loadCloud(auto=false){
@@ -759,7 +864,13 @@ async function loadCloud(auto=false){
     return;
   }
 
+  if(cloudSavePending && !auto){
+    await saveCloudNow(true, true);
+  }
+
   try{
+    setSyncStatus("Loading…", "saving");
+
     const r=await cloud
       .from("garage_data")
       .select("data,updated_at")
@@ -773,9 +884,10 @@ async function loadCloud(auto=false){
       saveLocal();
       render();
       setStatus("Cloud loaded • "+new Date(r.data.updated_at).toLocaleString());
+      setSyncStatus("Loaded", "saved");
     }else{
       saveLocal();
-      await saveCloudNow(true);
+      await saveCloudNow(true, true);
       render();
     }
   }catch(e){
@@ -786,10 +898,12 @@ async function loadCloud(auto=false){
       user=null;
       showAuth();
       setStatus("Session expired. Log in again.");
+      setSyncStatus("Login expired", "error");
       return;
     }
 
     setStatus("Cloud load failed. Local mode.");
+    setSyncStatus("Load failed", "error");
     if(!auto) alert(e.message || "Cloud load failed.");
   }
 }
