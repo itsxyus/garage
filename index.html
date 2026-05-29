@@ -834,7 +834,7 @@ input[type=range]{accent-color:var(--accent)}
           <label class="full">Showroom Note<textarea id="setShowroomNote" placeholder="Leave empty to use Goals as your Showroom description"></textarea></label>
         </div>
         <div class="showroom-toggle-row">
-          <input type="checkbox" id="setIsPublic" onchange="handleShowroomToggle()">
+          <input type="checkbox" id="setIsPublic" onclick="handleShowroomToggle()">
           <span>Show this car in the public Showroom</span>
         </div>
         <div class="button-row" style="margin-top:14px">
@@ -1460,19 +1460,34 @@ function switchGarageView(view){
   if(!mine)renderShowroom();
 }
 let showroomCache=[];
+function localPublicCars(){
+  return (state.cars||[]).filter(c=>c.isPublic).map(c=>({
+    _car_id:c.id,
+    car_name:c.name,year:c.year,make:c.make,model:c.model,
+    chassis:c.chassis,engine:c.engine,
+    note:c.showroomNote||c.goals||"",
+    total_spend:(c.mods||[]).reduce((s,m)=>s+parseFloat(m.price||0),0)+(c.services||[]).reduce((s,sv)=>s+parseFloat(sv.cost||0),0),
+    mod_count:(c.mods||[]).length
+  }));
+}
 async function renderShowroom(){
   const el=document.getElementById("showroomList");
   showroomCache=[];
   el.innerHTML='<div class="showroom-empty">Loading…</div>';
+  // Always include own public cars from local state — no RPC needed for these
+  const own=localPublicCars();
+  const ownIds=new Set(own.map(c=>c._car_id));
+  if(!cloud){showroomCache=own;applyShowroomFilters();return;}
   try{
     const{data,error}=await cloud.rpc("get_showroom_cars");
     if(error)throw error;
-    showroomCache=Array.isArray(data)?data:[];
-    applyShowroomFilters();
+    const remote=(Array.isArray(data)?data:[]).filter(r=>!ownIds.has(r._car_id));
+    showroomCache=[...own,...remote];
   }catch(e){
-    console.error(e);
-    el.innerHTML='<div class="showroom-empty">Couldn\'t load Showroom — make sure the database function is set up.</div>';
+    console.warn("Showroom RPC unavailable:",e.message||e);
+    showroomCache=own; // fall back to local-only
   }
+  applyShowroomFilters();
 }
 function applyShowroomFilters(){
   const make=(document.getElementById("filterMake")?.value||"").trim().toLowerCase();
