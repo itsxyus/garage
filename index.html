@@ -569,7 +569,7 @@ input[type=range]{accent-color:var(--accent)}
 /* Shared button style */
 .psb{
   position:absolute;
-  width:5px;
+  width:3px;
   background:#484849;
   border-radius:2px 0 0 2px;
 }
@@ -577,10 +577,11 @@ input[type=range]{accent-color:var(--accent)}
   border-radius:0 2px 2px 0;
 }
 /* iPhone 17 Pro Max button positions (% of phone height) */
-.psb-action { top:32%;   height:6%;  }
-.psb-vol-up { top:42%;   height:10%; }
-.psb-vol-dn { top:55%;   height:10%; }
-.psb-power  { top:42%;   height:20%; }
+.psb-action { top:22%; height:5%;  }
+.psb-vol-up { top:30%; height:10%; }
+.psb-vol-dn { top:42%; height:10%; }
+.psb-power  { top:33%; height:17%; }
+.psb-cam    { top:60%; height:5%;  }
 /* Desktop: 9:19.5 phone centered in viewport */
 @media(min-width:700px){
   :root{
@@ -668,7 +669,7 @@ input[type=range]{accent-color:var(--accent)}
     <div class="auth-actions">
       <button class="btn primary" onclick="signIn()">Log In</button>
       <button class="btn" onclick="signUp()">Sign Up</button>
-      <button class="btn guest" onclick="guestMode()">Continue as Guest</button><button class="btn guest" onclick="resetCloudLogin()">Reset Login</button>
+      <button class="btn guest" onclick="guestMode()">Continue as Guest</button>
       <button class="btn guest" onclick="forgotPassword()" style="margin-top:2px">Forgot Password?</button>
     </div>
     <p id="authStatus" class="status">Cloud sync ready.</p>
@@ -1666,6 +1667,7 @@ setInterval(()=>{if(cloudSavePending&&user&&!cloudSaving)saveCloudNow(true);},30
   </div>
   <div class="phone-side-r">
     <div class="psb psb-power"></div>
+    <div class="psb psb-cam"></div>
   </div>
 </div>
 </body>
