@@ -1536,18 +1536,23 @@ function applyShowroomFilters(){
     el.innerHTML=showroomCache.length?'<div class="showroom-empty">No builds match your filters.</div>':'<div class="showroom-empty">No builds shared yet — be the first!</div>';
     return;
   }
-  el.innerHTML=filtered.map(r=>`
-    <div class="showroom-card glass" onclick="openPublicProfile(${JSON.stringify(r._car_id||'')})">
-      <div class="showroom-info">
-        <h3>${esc(r.car_name||"Unknown Build")}</h3>
-        <p class="showroom-sub">${esc([r.year,r.make,r.model].filter(Boolean).join(" "))}</p>
-        ${r.note?`<p class="showroom-note">${esc(r.note)}</p>`:""}
-        <div class="showroom-stats">
-          <span>${money(r.total_spend||0)}</span>
-          <span>${r.mod_count||0} mod${r.mod_count!==1?"s":""}</span>
-        </div>
-      </div>
-    </div>`).join("");
+  el.innerHTML=filtered.map(r=>{
+    var note=r.note?'<p class="showroom-note">'+esc(r.note)+'</p>':"";
+    return '<div class="showroom-card glass" data-carid="'+esc(r._car_id||'')+'">'
+      +'<div class="showroom-info">'
+      +'<h3>'+esc(r.car_name||"Unknown Build")+'</h3>'
+      +'<p class="showroom-sub">'+esc([r.year,r.make,r.model].filter(Boolean).join(" "))+'</p>'
+      +note
+      +'<div class="showroom-stats">'
+      +'<span>'+money(r.total_spend||0)+'</span>'
+      +'<span>'+(r.mod_count||0)+' mod'+(r.mod_count!==1?"s":"")+'</span>'
+      +'</div>'
+      +'</div>'
+      +'</div>';
+  }).join("");
+  el.querySelectorAll('.showroom-card').forEach(function(card){
+    card.addEventListener('click',function(){openPublicProfile(card.dataset.carid);});
+  });
 }
 function clearShowroomFilters(){
   ["filterMake","filterModel","filterYearMin","filterYearMax"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
@@ -1611,23 +1616,22 @@ function renderPublicProfile(d,isOwn){
   }
   const cats={};
   mods.forEach(m=>{const cat=m.category||"Other";(cats[cat]=cats[cat]||[]).push(m);});
-  document.getElementById("profileMods").innerHTML=
-    `<section class="section glass"><div class="section-head"><h2>Mods (${mods.length})</h2></div>`+
-    Object.entries(cats).map(([cat,items])=>
-      `<div class="profile-cat-label">${esc(cat)}</div>`+
-      items.map(m=>`
-        <div class="profile-mod-row">
-          <div>
-            <div class="profile-mod-name">${esc(m.name||"")}</div>
-            ${m.brand?`<div class="profile-mod-meta">${esc(m.brand)}</div>`:""}
-            ${m.notes?`<div class="profile-mod-meta">${esc(m.notes)}</div>`:""}
-          </div>
-          <div>
-            ${m.price?`<div class="profile-mod-price">${money(m.price)}</div>`:""}
-            <div class="profile-mod-status">${esc(m.status||"")}</div>
-          </div>
-        </div>`).join("")
-    ).join("")+`</section>`;
+  var modsHTML='<section class="section glass"><div class="section-head"><h2>Mods ('+mods.length+')</h2></div>';
+  Object.entries(cats).forEach(function([cat,items]){
+    modsHTML+='<div class="profile-cat-label">'+esc(cat)+'</div>';
+    items.forEach(function(m){
+      modsHTML+='<div class="profile-mod-row"><div>'
+        +'<div class="profile-mod-name">'+esc(m.name||"")+'</div>';
+      if(m.brand)modsHTML+='<div class="profile-mod-meta">'+esc(m.brand)+'</div>';
+      if(m.notes)modsHTML+='<div class="profile-mod-meta">'+esc(m.notes)+'</div>';
+      modsHTML+='</div><div>';
+      if(m.price)modsHTML+='<div class="profile-mod-price">'+money(m.price)+'</div>';
+      modsHTML+='<div class="profile-mod-status">'+esc(m.status||"")+'</div>';
+      modsHTML+='</div></div>';
+    });
+  });
+  modsHTML+='</section>';
+  document.getElementById("profileMods").innerHTML=modsHTML;
 }
 function closePublicProfile(){
   document.getElementById("publicProfile").classList.add("hidden");
