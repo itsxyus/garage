@@ -638,6 +638,18 @@ input[type=range]{accent-color:var(--accent)}
     white-space:nowrap;
     min-width:0;
   }
+  /* Force narrow layout — .app is phone-width so viewport breakpoints don't fire */
+  .form-grid{grid-template-columns:1fr 1fr}
+  .span2,.full{grid-column:1/-1}
+  .section-controls{grid-template-columns:104px auto}
+  .section-head{align-items:center}
+  /* Slightly smaller type to feel like the mobile side */
+  html{font-size:14.5px}
+  .home-top h1{font-size:1.75rem}
+  .topbar h1{font-size:1.85rem}
+  .section-head h2{font-size:1.28rem}
+  .modal-head h2{font-size:1.3rem}
+  .home-model{font-size:.88rem}
 }
 </style>
 </head>
