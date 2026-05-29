@@ -760,7 +760,7 @@ function isStorageUrl(s){return typeof s==="string"&&s.startsWith("http")&&s.inc
 function storagePathFromUrl(url){const marker=`/object/public/${STORAGE_BUCKET}/`;const i=(url||"").indexOf(marker);return i===-1?null:url.slice(i+marker.length);}
 async function safeDeleteFromStorage(url){if(!user||!cloud||!isStorageUrl(url))return;const path=storagePathFromUrl(url);if(!path)return;try{await cloud.storage.from(STORAGE_BUCKET).remove([path]);}catch(e){console.warn("Could not delete image from storage:",e);}}
 async function uploadToStorage(file,path,compressOpts){const dataUrl=await compressImageFile(file,compressOpts);const res=await fetch(dataUrl);const blob=await res.blob();const{error}=await cloud.storage.from(STORAGE_BUCKET).upload(path,blob,{contentType:blob.type,upsert:true});if(error)throw error;const{data:{publicUrl}}=cloud.storage.from(STORAGE_BUCKET).getPublicUrl(path);return publicUrl;}
-function pickWithStorage(getPath,compressOpts,onSuccess){const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.onchange=async ev=>{const f=ev.target.files?.[0];if(!f)return;if(user){try{setSyncStatus("Uploading…","saving");const url=await uploadToStorage(f,getPath(),compressOpts);onSuccess(url);return;}catch(err){const msg=String(err?.message||err||"").toLowerCase();if(msg.includes("bucket")||msg.includes("does not exist")||msg.includes("not found")){console.error("[Garage] Supabase Storage bucket not found.\nFix: Supabase dashboard → Storage → New bucket → name: 'garage-images' → Public\nAdd RLS policy: authenticated users INSERT/SELECT/DELETE where (storage.foldername(name))[1] = auth.uid()::text");toast("Storage not configured. Photo saved locally (size-limited).");}else{console.warn("Storage upload failed, falling back to base64:",err);toast("Upload failed — saving photo locally.");}}}try{const dataUrl=await compressImageFile(f,compressOpts);onSuccess(dataUrl);}catch(err2){console.error(err2);toast("Could not add that image.");}};inp.click();}
+function pickWithStorage(getPath,compressOpts,onSuccess){const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.onchange=async ev=>{const f=ev.target.files?.[0];if(!f)return;if(user){try{setSyncStatus("Uploading…","saving");const url=await uploadToStorage(f,getPath(),compressOpts);onSuccess(url);clearTimeout(cloudTimer);saveCloudNow(true);return;}catch(err){const msg=String(err?.message||err||"").toLowerCase();if(msg.includes("bucket")||msg.includes("does not exist")||msg.includes("not found")){console.error("[Garage] Supabase Storage bucket not found.\nFix: Supabase dashboard → Storage → New bucket → name: 'garage-images' → Public\nAdd RLS policy: authenticated users INSERT/SELECT/DELETE where (storage.foldername(name))[1] = auth.uid()::text");toast("Storage not configured. Photo saved locally (size-limited).");}else{console.warn("Storage upload failed, falling back to base64:",err);toast("Upload failed — saving photo locally.");}}}try{const dataUrl=await compressImageFile(f,compressOpts);onSuccess(dataUrl);}catch(err2){console.error(err2);toast("Could not add that image.");}};inp.click();}
 
 async function initCloud(){
   try{
@@ -1487,6 +1487,12 @@ function deleteActiveCar(){const c=activeCar();if(c)deleteCar(c.id)}
 loadLocal();
 render();
 initCloud();
+
+// Flush any pending cloud save when user closes or refreshes the tab
+window.addEventListener("beforeunload",()=>{if(cloudSavePending&&user)saveCloudNow(true,true);});
+
+// Safety net: push pending saves every 30 seconds in case something slipped through
+setInterval(()=>{if(cloudSavePending&&user&&!cloudSaving)saveCloudNow(true);},30000);
 </script>
 </body>
 </html>
