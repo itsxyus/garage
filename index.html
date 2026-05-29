@@ -612,7 +612,8 @@ input[type=range]{accent-color:var(--accent)}
     overflow-y:auto;
     overflow-x:hidden;
     border-radius:44px;
-    padding-top:76px;
+    /* top: clear dynamic island; sides: stay inside bezel curves */
+    padding:76px 18px 0;
     scrollbar-width:none;
     -ms-overflow-style:none;
   }
@@ -621,11 +622,21 @@ input[type=range]{accent-color:var(--accent)}
     left:50%;right:auto;
     transform:translateX(-50%);
     width:var(--screen-w);
-    /* align with bottom of phone frame regardless of viewport height */
-    bottom:calc((100vh - var(--phone-h)) / 2);
+    /* +12px: sit inside the border, not behind it */
+    bottom:calc((100vh - var(--phone-h)) / 2 + 12px);
+    /* extra side padding to stay clear of bottom-corner curves */
+    padding-left:22px;
+    padding-right:22px;
     border-radius:20px 20px 0 0;
     border-left:1px solid rgba(255,255,255,.1);
     border-right:1px solid rgba(255,255,255,.1);
+  }
+  /* prevent long car names from bleeding past the top-right bezel curve */
+  .back-row h2{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    min-width:0;
   }
 }
 </style>
