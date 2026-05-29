@@ -526,43 +526,47 @@ input[type=range]{accent-color:var(--accent)}
 .action-btn.cancel{background:transparent;color:var(--muted)}
 /* Hero adjust modal */
 .hero-adjust-preview{width:100%;height:190px;object-fit:cover;border-radius:16px;display:block;margin:4px 0 16px}
-/* Desktop: keep it phone-width, centered */
+/* Desktop: .app IS the phone screen — fixed, scrollable within the frame */
 @media(min-width:700px){
-  .app{width:min(520px,100%)}
-  .tabs{
-    left:50%;
-    right:auto;
+  .app{
+    position:fixed;
+    top:0;left:50%;
     transform:translateX(-50%);
-    width:min(520px,100%);
+    width:min(520px,100vw - 28px);
+    height:100vh;
+    overflow-y:auto;
+    overflow-x:hidden;
+    border-radius:44px;
+    padding-top:76px;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+  }
+  .app::-webkit-scrollbar{display:none}
+  .tabs{
+    left:50%;right:auto;
+    transform:translateX(-50%);
+    width:min(520px,100vw - 28px);
     border-radius:20px 20px 0 0;
     border-left:1px solid rgba(255,255,255,.1);
     border-right:1px solid rgba(255,255,255,.1);
   }
-  /* iPhone frame visible on desktop */
   .phone-chrome{display:block}
-  body{background-attachment:fixed}
-  /* push content below Dynamic Island (12px border + 14px gap + 36px pill + 14px breathing room) */
-  .app{padding-top:76px}
 }
-
-/* iPhone 17 Pro Max frame overlay */
+/* iPhone 17 Pro Max frame (desktop only) */
 .phone-chrome{
   display:none;
   position:fixed;
-  top:50%;left:50%;
-  transform:translate(-50%,-50%);
-  /* frame: 12px border = phone bezel thickness */
+  top:0;left:50%;
+  transform:translateX(-50%);
   width:calc(min(520px,100vw - 28px) + 24px);
-  /* tall enough to be full viewport */
   height:100vh;
-  border:12px solid #1a1a1c;
+  border:12px solid #2c2c2e;
   border-radius:56px;
   box-sizing:border-box;
-  /* black out everything outside the phone frame */
   box-shadow:
     0 0 0 9999px #000,
-    inset 0 0 0 1px rgba(255,255,255,.08),
-    0 0 0 1px rgba(255,255,255,.05);
+    inset 0 0 0 1.5px rgba(255,255,255,.12),
+    0 0 0 1px rgba(120,120,130,.35);
   pointer-events:none;
   z-index:9000;
 }
@@ -570,73 +574,49 @@ input[type=range]{accent-color:var(--accent)}
 .phone-chrome::before{
   content:"";
   position:absolute;
-  top:14px;
-  left:50%;
+  top:14px;left:50%;
   transform:translateX(-50%);
-  width:126px;
-  height:36px;
+  width:126px;height:36px;
   background:#000;
   border-radius:20px;
-  z-index:1;
-  box-shadow:0 0 0 2px rgba(255,255,255,.04);
 }
-/* Home indicator bar */
+/* Home indicator */
 .phone-chrome::after{
   content:"";
   position:absolute;
-  bottom:8px;
-  left:50%;
+  bottom:8px;left:50%;
   transform:translateX(-50%);
-  width:130px;
-  height:5px;
-  background:rgba(255,255,255,.32);
+  width:130px;height:5px;
+  background:rgba(255,255,255,.3);
   border-radius:3px;
 }
-/* Left side: mute switch + volume buttons */
+/* Left side: mute + vol up + vol down flush with phone edge */
 .phone-side-l{
   position:absolute;
-  left:-18px;
-  top:0;
-  width:6px;
-  height:100%;
-  pointer-events:none;
-  /* mute switch (top), vol up, vol down stacked via box-shadow */
-  box-shadow:
-    /* mute switch */
-    0 -1px 0 0 transparent,
-    inset 0 0 0 0 transparent;
+  left:-6px;top:0;
+  width:6px;height:100%;
 }
 .phone-side-l::before{
   content:"";
   position:absolute;
-  left:0;
-  top:100px;
-  width:6px;
-  height:32px;
-  background:#1a1a1c;
+  left:0;top:95px;
+  width:6px;height:30px;
+  background:#2c2c2e;
   border-radius:3px 0 0 3px;
-  /* mute + two vol buttons */
-  box-shadow:
-    0 52px 0 #1a1a1c,
-    0 100px 0 #1a1a1c;
+  box-shadow:0 50px 0 #2c2c2e,0 96px 0 #2c2c2e;
 }
 /* Right side: power button */
 .phone-side-r{
   position:absolute;
-  right:-18px;
-  top:0;
-  width:6px;
-  height:100%;
-  pointer-events:none;
+  right:-6px;top:0;
+  width:6px;height:100%;
 }
 .phone-side-r::before{
   content:"";
   position:absolute;
-  right:0;
-  top:160px;
-  width:6px;
-  height:72px;
-  background:#1a1a1c;
+  right:0;top:160px;
+  width:6px;height:72px;
+  background:#2c2c2e;
   border-radius:0 3px 3px 0;
 }
 </style>
@@ -653,6 +633,7 @@ input[type=range]{accent-color:var(--accent)}
       <button class="btn primary" onclick="signIn()">Log In</button>
       <button class="btn" onclick="signUp()">Sign Up</button>
       <button class="btn guest" onclick="guestMode()">Continue as Guest</button><button class="btn guest" onclick="resetCloudLogin()">Reset Login</button>
+      <button class="btn guest" onclick="forgotPassword()" style="margin-top:2px">Forgot Password?</button>
     </div>
     <p id="authStatus" class="status">Cloud sync ready.</p>
   </div>
@@ -690,6 +671,15 @@ input[type=range]{accent-color:var(--accent)}
     <img id="heroAdjustPreview" class="hero-adjust-preview" alt="">
     <label>Left / Right<input id="heroAdjustX" type="range" min="0" max="100" value="50" oninput="previewHeroAdjust()"></label>
     <label style="margin-top:10px">Up / Down<input id="heroAdjustY" type="range" min="0" max="100" value="50" oninput="previewHeroAdjust()"></label>
+  </div>
+</div>
+
+<div id="resetPasswordModal" class="modal hidden">
+  <div class="modal-card glass">
+    <div class="modal-head"><h2>Set New Password</h2></div>
+    <p style="color:var(--muted);margin:0 0 14px">Enter a new password for your account.</p>
+    <label>New Password<input id="newPasswordInput" type="password" placeholder="Min 6 characters"></label>
+    <div class="button-row" style="margin-top:14px;justify-content:flex-end"><button class="btn primary" onclick="updatePassword()">Update Password</button></div>
   </div>
 </div>
 
@@ -878,6 +868,8 @@ async function initCloud(){
       if(e==="SIGNED_IN"){
         hideAuth();
         await loadCloud(true);
+      }else if(e==="PASSWORD_RECOVERY"){
+        document.getElementById("resetPasswordModal").classList.remove("hidden");
       }else if(e==="TOKEN_REFRESHED"||e==="USER_UPDATED"){
         if(user)hideAuth();
       }else if(!user&&!guest){
@@ -919,6 +911,8 @@ function setSyncStatus(t, cls=""){
 }
 async function signUp(){const email=authEmail.value.trim(),password=authPassword.value;if(!email||password.length<6)return alert("Use email + 6 character password.");const r=await cloud.auth.signUp({email,password});if(r.error)return alert(r.error.message);if(r.data.session){user=r.data.user;hideAuth();await saveCloudNow(true)}else setStatus("Check email, then log in.")}
 async function signIn(){const email=authEmail.value.trim(),password=authPassword.value;const r=await cloud.auth.signInWithPassword({email,password});if(r.error)return alert(r.error.message);user=r.data.user;hideAuth();}
+async function forgotPassword(){const email=prompt("Enter your account email:");if(!email)return;const{error}=await cloud.auth.resetPasswordForEmail(email,{redirectTo:location.href});if(error)return alert(error.message);alert("Reset email sent — check your inbox (and spam).");}
+async function updatePassword(){const p=document.getElementById("newPasswordInput").value;if(!p||p.length<6)return alert("Password must be at least 6 characters.");const{error}=await cloud.auth.updateUser({password:p});if(error)return alert(error.message);document.getElementById("resetPasswordModal").classList.add("hidden");document.getElementById("newPasswordInput").value="";toast("Password updated!");}
 function guestMode(){guest=true;hideAuth();setStatus("Guest mode • saved on this device");render()}
 async function signOut(){
   guest=false;
