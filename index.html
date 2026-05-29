@@ -1409,6 +1409,8 @@ function initSwipe(wrapperSel,targetSel){document.querySelectorAll(wrapperSel).f
 function compressImageFile(file, options={}){
   const maxSide = options.maxSide || 1200;
   const quality = options.quality || 0.82;
+  const maxKB = options.maxKB || null;
+  const qualityFloor = options.qualityFloor || 0.30;
   const name = (file.name || "").toLowerCase();
   const type = (file.type || "").toLowerCase();
   const keepAlpha = options.preserveTransparency && (type.includes("png") || name.endsWith(".png") || type.includes("webp"));
@@ -1443,13 +1445,24 @@ function compressImageFile(file, options={}){
 
         ctx.drawImage(img,0,0,w,h);
 
-        let dataUrl = keepAlpha
-          ? canvas.toDataURL("image/webp", quality)
-          : canvas.toDataURL("image/jpeg", quality);
+        let q = quality;
+        let dataUrl;
 
-        if(keepAlpha && !dataUrl.startsWith("data:image/webp")){
-          dataUrl = canvas.toDataURL("image/png");
-        }
+        do {
+          dataUrl = keepAlpha
+            ? canvas.toDataURL("image/webp", q)
+            : canvas.toDataURL("image/jpeg", q);
+
+          if(keepAlpha && !dataUrl.startsWith("data:image/webp")){
+            dataUrl = canvas.toDataURL("image/png");
+            break;
+          }
+
+          if(!maxKB) break;
+          const kb = Math.round(dataUrl.length * 0.75 / 1024);
+          if(kb <= maxKB || q <= qualityFloor) break;
+          q = Math.max(qualityFloor, q - 0.05);
+        } while(true);
 
         resolve(dataUrl);
       };
@@ -1504,13 +1517,13 @@ function previewHeroAdjust(){heroAdjustPreview.style.objectPosition=`${heroAdjus
 
 function pickHeroPhoto(){
   const c=activeCar();if(!c)return;
-  pickWithStorage(()=>`${user.id}/${c.id}/hero`,{maxSide:1400,quality:.88,preserveTransparency:true},src=>{
+  pickWithStorage(()=>`${user.id}/${c.id}/hero`,{maxSide:800,quality:.80,maxKB:120,preserveTransparency:true},src=>{
     c.carImage=src;save();renderHero();renderGarage();
   });
 }
 function pickModPhoto(id){
   const c=activeCar();if(!c)return;
-  pickWithStorage(()=>`${user.id}/${c.id}/mods/${id}`,{maxSide:400,quality:.70,preserveTransparency:false},src=>{
+  pickWithStorage(()=>`${user.id}/${c.id}/mods/${id}`,{maxSide:400,quality:.65,maxKB:15,preserveTransparency:false},src=>{
     const m=c.mods.find(x=>x.id===id);if(!m)return;
     m.image=src;save();renderMods();toast("Photo saved");
   });
@@ -1524,7 +1537,7 @@ function removeModPhoto(id){
 
 function pickBackgroundPhoto(){
   const c=activeCar();if(!c)return;
-  pickWithStorage(()=>`${user.id}/${c.id}/bg`,{maxSide:1100,quality:.55,preserveTransparency:false},src=>{
+  pickWithStorage(()=>`${user.id}/${c.id}/bg`,{maxSide:900,quality:.65,maxKB:80,preserveTransparency:false},src=>{
     c.backgroundImage=src;save();renderHero();
   });
 }
