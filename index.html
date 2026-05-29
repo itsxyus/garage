@@ -643,6 +643,9 @@ input[type=range]{accent-color:var(--accent)}
   .span2,.full{grid-column:1/-1}
   .section-controls{grid-template-columns:104px auto}
   .section-head{align-items:center}
+  /* Stack due-status below service title (same as mobile breakpoint) */
+  .service-row{grid-template-columns:1fr}
+  .due{text-align:left;font-size:.82rem;margin-top:3px}
   /* Slightly smaller type to feel like the mobile side */
   html{font-size:14.5px}
   .home-top h1{font-size:1.75rem}
@@ -650,6 +653,8 @@ input[type=range]{accent-color:var(--accent)}
   .section-head h2{font-size:1.28rem}
   .modal-head h2{font-size:1.3rem}
   .home-model{font-size:.88rem}
+  /* trim side padding for more usable width */
+  .app{padding-left:14px;padding-right:14px}
 }
 </style>
 </head>
