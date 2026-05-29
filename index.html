@@ -114,18 +114,20 @@ label input,label select,label textarea{margin-top:6px}
   z-index:1;
   display:flex;
   flex-direction:column;
-  justify-content:center;
+  justify-content:flex-end;
   width:100%;
   min-height:230px;
   padding:16px;
   color:var(--text);
   text-align:left;
   transition:transform .22s ease;
+  overflow:hidden;
 }
+.car-card::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.78) 0%,rgba(0,0,0,.25) 55%,transparent 100%);z-index:1;pointer-events:none}
 .car-card.swiped,.mod-card.swiped{transform:translateX(-112px)}
-.car-card img{width:100%;height:155px;object-fit:contain;margin-bottom:14px}
-.car-card h2{margin:0;font-size:1.35rem;font-weight:600}
-.car-card p{margin:5px 0 0;color:var(--muted)}
+.car-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 50%;margin:0;z-index:0}
+.car-card h2{margin:0;font-size:1.35rem;font-weight:600;position:relative;z-index:2}
+.car-card p{margin:4px 0 0;color:rgba(255,255,255,.7);position:relative;z-index:2}
 .add-card{
   min-height:230px;
   display:flex;
@@ -966,7 +968,7 @@ function render(){activeCar()?showCarApp():showGarage()}
 function showGarage(){state.activeCarId=null;saveLocal();carApp.classList.add("hidden");tabs.classList.add("hidden");garageHome.classList.remove("hidden");renderGarage();window.scrollTo({top:0,behavior:"smooth"})}
 function showCarApp(){garageHome.classList.add("hidden");carApp.classList.remove("hidden");tabs.classList.remove("hidden");renderHero();renderMods();renderServices();renderTotals();renderTimeline();renderSettings()}
 function openCar(id){state.activeCarId=id;saveLocal();showCarApp();showPage("homePage",document.querySelector("[data-tab=home]"));scheduleCloudSave()}
-function renderGarage(){garageList.innerHTML=state.cars.map(c=>`<div class="car-wrap" data-id="${c.id}"><div class="delete-bg" onclick="deleteCar('${c.id}')">Delete</div><button class="car-card glass" onclick="openCar('${c.id}')"><img src="${esc(c.carImage||fallbackImg)}" onerror="this.src=fallbackImg"><h2>${esc(c.name)}</h2><p>${esc([c.year,c.make,c.model].filter(Boolean).join(" ")||"No vehicle info yet")}</p></button></div>`).join("")+`<div class="add-card glass" onclick="openCarModal()"><div><b>＋ Add Your Car</b><span>${state.cars.length?"Add Another":"Start your garage"}</span></div></div>`;initSwipe(".car-wrap",".car-card")}
+function renderGarage(){garageList.innerHTML=state.cars.map(c=>`<div class="car-wrap" data-id="${c.id}"><div class="delete-bg" onclick="deleteCar('${c.id}')">Delete</div><button class="car-card glass" onclick="openCar('${c.id}')"><img src="${esc(c.carImage||fallbackImg)}" style="object-position:${c.carImageOffsetX??50}% ${c.carImageOffsetY??50}%" onerror="this.src=fallbackImg"><h2>${esc(c.name)}</h2><p>${esc([c.year,c.make,c.model].filter(Boolean).join(" ")||"No vehicle info yet")}</p></button></div>`).join("")+`<div class="add-card glass" onclick="openCarModal()"><div><b>＋ Add Your Car</b><span>${state.cars.length?"Add Another":"Start your garage"}</span></div></div>`;initSwipe(".car-wrap",".car-card")}
 function openCarModal(c=null){modalTitle.textContent=c?"Edit Car":"Add Your Car";carModal.dataset.editId=c?.id||"";modalName.value=c?.name||"";modalYear.value=c?.year||"";modalMake.value=c?.make||"";modalModel.value=c?.model||"";modalChassis.value=c?.chassis||"";modalEngine.value=c?.engine||"";modalPurchaseDate.value=c?.purchaseDate||"";modalPurchaseMileage.value=c?.purchaseMileage||"";carModal.classList.remove("hidden")}
 function closeCarModal(){carModal.classList.add("hidden")}
 function saveCarFromModal(){let c=state.cars.find(x=>x.id===carModal.dataset.editId);if(!c){c=blankCar();state.cars.push(c)}c.name=modalName.value.trim()||"New Car";c.year=modalYear.value.trim();c.make=modalMake.value.trim();c.model=modalModel.value.trim();c.chassis=modalChassis.value.trim()||"N/A";c.engine=modalEngine.value.trim()||"N/A";c.purchaseDate=modalPurchaseDate.value;c.purchaseMileage=modalPurchaseMileage.value.trim();closeCarModal();state.activeCarId=c.id;save();showCarApp()}
