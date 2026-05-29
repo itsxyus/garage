@@ -643,6 +643,7 @@ const SUPABASE_URL="https://dcmpjxpqjyxcgztrnrsn.supabase.co";
 const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjbXBqeHBxanl4Y2d6dHJucnNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MDY4NTYsImV4cCI6MjA5NDQ4Mjg1Nn0.H7wlpRbc5eT-b60oXQJ0nFm9_-V5NuTmUrFR3C8vU24";
 const STORAGE_KEY="my_garage_v3";
 const BASE_CATS=["Cosmetics","Performance","Handling"];
+const STORAGE_BUCKET="garage-images";
 const DEFAULT_BG='url("https://tailofthedragon.com/wp-content/uploads/2025/06/TODInfoTopFeaturedMaybe.jpg")';
 const fallbackImg="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='260'%3E%3Crect width='100%25' height='100%25' rx='28' fill='%230b0d11'/%3E%3Cpath d='M62 165 C92 110,145 95,232 110 C292 120,322 146,343 166' fill='none' stroke='%23ff3b3b' stroke-width='9' stroke-linecap='round'/%3E%3Ctext x='200' y='72' fill='white' text-anchor='middle' font-family='Arial' font-size='28' font-weight='700'%3EGarage%3C/text%3E%3C/svg%3E";
 let state={cars:[],activeCarId:null},cloud=null,user=null,cloudTimer=null,guest=false,sortPrefs={},cloudSaving=false,cloudSavePending=false,lastCloudSaveAt=null;
@@ -707,6 +708,12 @@ function isBadRefreshTokenError(e){
   return msg.includes("refresh token") || code.includes("refresh_token");
 }
 
+function isStorageUrl(s){return typeof s==="string"&&s.startsWith("http")&&s.includes("/storage/v1/object/");}
+function storagePathFromUrl(url){const marker=`/object/public/${STORAGE_BUCKET}/`;const i=(url||"").indexOf(marker);return i===-1?null:url.slice(i+marker.length);}
+async function safeDeleteFromStorage(url){if(!user||!cloud||!isStorageUrl(url))return;const path=storagePathFromUrl(url);if(!path)return;try{await cloud.storage.from(STORAGE_BUCKET).remove([path]);}catch(e){console.warn("Could not delete image from storage:",e);}}
+async function uploadToStorage(file,subfolder,compressOpts){const dataUrl=await compressImageFile(file,compressOpts);const res=await fetch(dataUrl);const blob=await res.blob();const ext=blob.type.includes("png")?"png":blob.type.includes("webp")?"webp":"jpg";const path=`${user.id}/${subfolder}/${uid()}.${ext}`;const{error}=await cloud.storage.from(STORAGE_BUCKET).upload(path,blob,{contentType:blob.type,upsert:false});if(error)throw error;const{data:{publicUrl}}=cloud.storage.from(STORAGE_BUCKET).getPublicUrl(path);return publicUrl;}
+function pickWithStorage(subfolder,compressOpts,onSuccess){const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.onchange=async ev=>{const f=ev.target.files?.[0];if(!f)return;if(user){try{setSyncStatus("Uploading…","saving");const url=await uploadToStorage(f,subfolder,compressOpts);onSuccess(url);return;}catch(err){const msg=String(err?.message||err||"").toLowerCase();if(msg.includes("bucket")||msg.includes("does not exist")||msg.includes("not found")){console.error("[Garage] Supabase Storage bucket not found.\nFix: Supabase dashboard → Storage → New bucket → name: 'garage-images' → Public\nAdd RLS policy: authenticated users INSERT/SELECT/DELETE where (storage.foldername(name))[1] = auth.uid()::text");toast("Storage not configured. Photo saved locally (size-limited).");}else{console.warn("Storage upload failed, falling back to base64:",err);toast("Upload failed — saving photo locally.");}}}try{const dataUrl=await compressImageFile(f,compressOpts);onSuccess(dataUrl);}catch(err2){console.error(err2);toast("Could not add that image.");}};inp.click();}
+
 async function initCloud(){
   try{
     cloud=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
@@ -722,11 +729,12 @@ async function initCloud(){
 
     cloud.auth.onAuthStateChange(async(e,session)=>{
       user=session?.user||null;
-
-      if(user){
+      if(e==="SIGNED_IN"){
         hideAuth();
         await loadCloud(true);
-      }else if(!guest){
+      }else if(e==="TOKEN_REFRESHED"||e==="USER_UPDATED"){
+        if(user)hideAuth();
+      }else if(!user&&!guest){
         showAuth();
       }
     });
@@ -764,7 +772,7 @@ function setSyncStatus(t, cls=""){
   el.className="sync-pill " + cls;
 }
 async function signUp(){const email=authEmail.value.trim(),password=authPassword.value;if(!email||password.length<6)return alert("Use email + 6 character password.");const r=await cloud.auth.signUp({email,password});if(r.error)return alert(r.error.message);if(r.data.session){user=r.data.user;hideAuth();await saveCloudNow(true)}else setStatus("Check email, then log in.")}
-async function signIn(){const email=authEmail.value.trim(),password=authPassword.value;const r=await cloud.auth.signInWithPassword({email,password});if(r.error)return alert(r.error.message);user=r.data.user;hideAuth();await loadCloud(true)}
+async function signIn(){const email=authEmail.value.trim(),password=authPassword.value;const r=await cloud.auth.signInWithPassword({email,password});if(r.error)return alert(r.error.message);user=r.data.user;hideAuth();}
 function guestMode(){guest=true;hideAuth();setStatus("Guest mode • saved on this device");render()}
 async function signOut(){
   guest=false;
@@ -1302,50 +1310,28 @@ function pickFile(cb, options={}){
   i.click();
 }
 function pickHeroPhoto(){
-  pickFile(src=>{
-    activeCar().carImage=src;
-    save();
-    renderHero();
-    renderGarage();
-  }, {
-    maxSide:1000,
-    quality:.78,
-    preserveTransparency:true
+  const c=activeCar();if(!c)return;
+  pickWithStorage("hero",{maxSide:1000,quality:.78,preserveTransparency:true},src=>{
+    c.carImage=src;save();renderHero();renderGarage();
   });
 }
 function pickModPhoto(id){
-  pickFile(src=>{
-    const m=activeCar().mods.find(x=>x.id===id);
-    if(m){
-      m.image=src;
-      save();
-      renderMods();
-      toast("Photo saved as small thumbnail");
-    }
-  }, {
-    maxSide:160,
-    quality:.32,
-    preserveTransparency:false
+  pickWithStorage("mods",{maxSide:400,quality:.70,preserveTransparency:false},src=>{
+    const m=activeCar()?.mods.find(x=>x.id===id);if(!m)return;
+    m.image=src;save();renderMods();toast("Photo saved");
   });
 }
 function removeModPhoto(id){
-  const m=activeCar().mods.find(x=>x.id===id);
+  const m=activeCar()?.mods.find(x=>x.id===id);
   if(!m)return;
-
-  m.image="";
-  save();
-  renderMods();
+  safeDeleteFromStorage(m.image);
+  m.image="";save();renderMods();
 }
 
 function pickBackgroundPhoto(){
-  pickFile(src=>{
-    activeCar().backgroundImage=src;
-    save();
-    renderHero();
-  }, {
-    maxSide:1100,
-    quality:.55,
-    preserveTransparency:false
+  const c=activeCar();if(!c)return;
+  pickWithStorage("backgrounds",{maxSide:1100,quality:.55,preserveTransparency:false},src=>{
+    c.backgroundImage=src;save();renderHero();
   });
 }
 function useHeroAsBackground(){if(!activeCar().carImage)return alert("Add a hero image first.");activeCar().backgroundImage=activeCar().carImage;save();renderHero()}
@@ -1355,6 +1341,9 @@ function clearAllStoredPhotos(){
   if(!confirm("Clear ALL saved photos from all cars on this account/device? Text, prices, dates, and notes stay.")) return;
 
   state.cars.forEach(c=>{
+    safeDeleteFromStorage(c.carImage);
+    safeDeleteFromStorage(c.backgroundImage);
+    (c.mods||[]).forEach(m=>safeDeleteFromStorage(m.image));
     c.carImage="";
     c.backgroundImage="";
     (c.mods||[]).forEach(m=>m.image="");
@@ -1376,6 +1365,9 @@ function clearActiveCarPhotos(){
   if(!c)return;
   if(!confirm("Clear hero, background, and mod photos for this car? Text/prices stay."))return;
 
+  safeDeleteFromStorage(c.carImage);
+  safeDeleteFromStorage(c.backgroundImage);
+  (c.mods||[]).forEach(m=>safeDeleteFromStorage(m.image));
   c.carImage="";
   c.backgroundImage="";
   (c.mods||[]).forEach(m=>m.image="");
@@ -1398,6 +1390,9 @@ function clearCarPhotos(){
   if(!c)return;
   if(!confirm("Clear hero, background, and mod photos for this car?"))return;
 
+  safeDeleteFromStorage(c.carImage);
+  safeDeleteFromStorage(c.backgroundImage);
+  (c.mods||[]).forEach(m=>safeDeleteFromStorage(m.image));
   c.carImage="";
   c.backgroundImage="";
   (c.mods||[]).forEach(m=>m.image="");
