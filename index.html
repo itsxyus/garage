@@ -656,6 +656,23 @@ input[type=range]{accent-color:var(--accent)}
   }
   .auth-card{width:100%}
 }
+/* Showroom */
+.garage-view-toggle{display:flex;gap:8px;margin-bottom:16px}
+.garage-view-toggle .btn{flex:1;text-align:center;font-weight:500}
+.garage-view-toggle .btn.active{background:linear-gradient(135deg,var(--accent),rgba(90,0,0,.85));border-color:var(--accent);color:#fff}
+.showroom-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.showroom-card{overflow:hidden;border-radius:22px;display:flex;flex-direction:column}
+.showroom-hero{width:100%;height:160px;object-fit:contain;background:rgba(255,255,255,.03);display:block}
+.showroom-info{padding:14px 16px 16px;flex:1;display:flex;flex-direction:column;gap:4px}
+.showroom-info h3{margin:0;font-size:1.1rem;font-weight:600}
+.showroom-sub{margin:0;color:var(--muted);font-size:.82rem}
+.showroom-note{margin:4px 0 0;font-size:.88rem;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;flex:1}
+.showroom-stats{display:flex;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.showroom-stats span{font-size:.82rem;color:var(--accent);font-weight:600}
+.showroom-empty{text-align:center;padding:48px 20px;color:var(--muted);font-size:.95rem}
+.showroom-toggle-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line);margin-top:4px}
+.showroom-toggle-row input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent);flex-shrink:0}
+.showroom-toggle-row span{font-size:.9rem;color:var(--text);line-height:1.35}
 </style>
 </head>
 <body>
@@ -723,7 +740,14 @@ input[type=range]{accent-color:var(--accent)}
 <div class="app">
   <div id="garageHome">
     <div class="topbar"><div><h1>My Garage</h1><div class="status" id="cloudStatus">Local mode</div><div class="sync-pill" id="syncStatus">Sync idle</div></div><div class="button-row" style="margin:0"><button class="btn" onclick="forceCloudSave()">Save Now</button><button class="btn danger" onclick="signOut()">Log Out</button></div></div>
+    <div class="garage-view-toggle">
+      <button class="btn active" id="myGarageBtn" onclick="switchGarageView('mine')">My Garage</button>
+      <button class="btn" id="showroomBtn" onclick="switchGarageView('showroom')">✦ Showroom</button>
+    </div>
     <div class="garage-grid" id="garageList"></div>
+    <div id="showroomSection" class="hidden">
+      <div class="showroom-grid" id="showroomList"></div>
+    </div>
   </div>
 
   <div id="carApp" class="hidden">
@@ -788,6 +812,11 @@ input[type=range]{accent-color:var(--accent)}
           <label class="span2">Accent Color<div class="inline-save"><div class="color-row"><input id="setAccent" type="color"><span>Theme color</span></div></div></label>
           <label class="span2">Background Opacity<input id="setBgOpacity" type="range" min=".25" max="1" step=".01" oninput="activeCar().backgroundOpacity=this.value;save();renderHero()"></label>
           <label class="full">Goals<textarea id="setGoals" placeholder="Goals / notes"></textarea></label>
+          <label class="full">Showroom Note<textarea id="setShowroomNote" placeholder="Leave empty to use Goals as your Showroom description"></textarea></label>
+        </div>
+        <div class="showroom-toggle-row">
+          <input type="checkbox" id="setIsPublic" onchange="handleShowroomToggle()">
+          <span>Show this car in the public Showroom</span>
         </div>
         <div class="button-row" style="margin-top:14px">
           <button class="btn primary" onclick="saveWithFeedback()">Save</button>
@@ -826,9 +855,9 @@ function money(v){const n=parseFloat(v);return isNaN(n)?"$0.00":n.toLocaleString
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function toast(msg){const old=document.querySelector(".toast");if(old)old.remove();const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),1300)}
 
-function blankCar(){return {id:uid(),name:"New Car",year:"",make:"",model:"",chassis:"N/A",engine:"N/A",purchaseDate:"",purchaseMileage:"",currentMileage:"",currentMileageDate:"",goals:"",accent:"#ff3b3b",backgroundImage:"",backgroundOpacity:".65",carImage:"",carImageOffsetX:50,carImageOffsetY:50,mods:[],services:[]}}
+function blankCar(){return {id:uid(),name:"New Car",year:"",make:"",model:"",chassis:"N/A",engine:"N/A",purchaseDate:"",purchaseMileage:"",currentMileage:"",currentMileageDate:"",goals:"",accent:"#ff3b3b",backgroundImage:"",backgroundOpacity:".65",carImage:"",carImageOffsetX:50,carImageOffsetY:50,isPublic:false,showroomNote:"",mods:[],services:[]}}
 function splitVehicleText(text){const p=String(text||"").trim().split(/\s+/).filter(Boolean);const out={year:"",make:"",model:""};if(/^\d{4}$/.test(p[0]||""))out.year=p.shift();if(p.length){out.make=p.shift()||"";out.model=p.join(" ")}return out}
-function normalizeCar(c={}){const sp=splitVehicleText(c.carModel||"");return {id:c.id||uid(),name:c.name||c.carName||"New Car",year:c.year||c.carYear||sp.year||"",make:c.make||c.carMake||sp.make||"",model:c.model||c.carModelName||sp.model||"",chassis:c.chassis||c.chassisCode||"N/A",engine:c.engine||c.engineCode||"N/A",purchaseDate:c.purchaseDate||"",purchaseMileage:c.purchaseMileage||"",currentMileage:c.currentMileage||"",currentMileageDate:c.currentMileageDate||"",goals:c.goals||"",accent:c.accent||c.accentColor||"#ff3b3b",backgroundImage:c.backgroundImage||"",backgroundOpacity:c.backgroundOpacity||".65",carImage:c.carImage||"",carImageOffsetX:c.carImageOffsetX??50,carImageOffsetY:c.carImageOffsetY??50,mods:Array.isArray(c.mods)?c.mods.map(m=>({id:m.id||uid(),category:m.category||"Cosmetics",name:m.name||"New Item",brand:m.brand||"",status:m.status||"Planned",price:m.price||"",date:m.date||"",image:m.image||"",notes:m.notes||""})):[],services:Array.isArray(c.services)?c.services.map(s=>({id:s.id||uid(),name:s.name||"Service",date:s.date||"",mileage:s.mileage||"",intervalMiles:s.intervalMiles||"",intervalMonths:s.intervalMonths||"",cost:s.cost||"",notes:s.notes||""})):[]}}
+function normalizeCar(c={}){const sp=splitVehicleText(c.carModel||"");return {id:c.id||uid(),name:c.name||c.carName||"New Car",year:c.year||c.carYear||sp.year||"",make:c.make||c.carMake||sp.make||"",model:c.model||c.carModelName||sp.model||"",chassis:c.chassis||c.chassisCode||"N/A",engine:c.engine||c.engineCode||"N/A",purchaseDate:c.purchaseDate||"",purchaseMileage:c.purchaseMileage||"",currentMileage:c.currentMileage||"",currentMileageDate:c.currentMileageDate||"",goals:c.goals||"",accent:c.accent||c.accentColor||"#ff3b3b",backgroundImage:c.backgroundImage||"",backgroundOpacity:c.backgroundOpacity||".65",carImage:c.carImage||"",carImageOffsetX:c.carImageOffsetX??50,carImageOffsetY:c.carImageOffsetY??50,isPublic:c.isPublic||false,showroomNote:c.showroomNote||"",mods:Array.isArray(c.mods)?c.mods.map(m=>({id:m.id||uid(),category:m.category||"Cosmetics",name:m.name||"New Item",brand:m.brand||"",status:m.status||"Planned",price:m.price||"",date:m.date||"",image:m.image||"",notes:m.notes||""})):[],services:Array.isArray(c.services)?c.services.map(s=>({id:s.id||uid(),name:s.name||"Service",date:s.date||"",mileage:s.mileage||"",intervalMiles:s.intervalMiles||"",intervalMonths:s.intervalMonths||"",cost:s.cost||"",notes:s.notes||""})):[]}}
 function normalizeState(raw){if(!raw||typeof raw!=="object")return {cars:[],activeCarId:null};if(Array.isArray(raw.cars)){const cars=raw.cars.map(normalizeCar);return {cars,activeCarId:cars.some(c=>c.id===raw.activeCarId)?raw.activeCarId:null}}if(Array.isArray(raw.mods)||Array.isArray(raw.services)||raw.carName||raw.carModel)return {cars:[normalizeCar(raw)],activeCarId:null};return {cars:[],activeCarId:null}}
 function activeCar(){return state.cars.find(c=>c.id===state.activeCarId)||null}
 function saveLocal(){
@@ -1360,10 +1389,13 @@ function setService(id,k,v){
   }
 }
 
-function renderSettings(){const c=activeCar();if(!c)return;setName.value=c.name;setYear.value=c.year;setMake.value=c.make;setModel.value=c.model;setChassis.value=c.chassis;setEngine.value=c.engine;setPurchaseDate.value=c.purchaseDate;setPurchaseMileage.value=c.purchaseMileage;setAccent.value=c.accent;setBgOpacity.value=c.backgroundOpacity;setGoals.value=c.goals}
-function saveCarInfo(){const c=activeCar();if(!c)return;c.name=setName.value.trim()||"New Car";c.year=setYear.value.trim();c.make=setMake.value.trim();c.model=setModel.value.trim();c.chassis=setChassis.value.trim()||"N/A";c.engine=setEngine.value.trim()||"N/A";c.purchaseDate=setPurchaseDate.value;c.purchaseMileage=setPurchaseMileage.value.trim();c.accent=setAccent.value;c.backgroundOpacity=setBgOpacity.value;c.goals=setGoals.value;save();renderHero();renderGarage();renderTimeline();renderSettings();}
+function renderSettings(){const c=activeCar();if(!c)return;setName.value=c.name;setYear.value=c.year;setMake.value=c.make;setModel.value=c.model;setChassis.value=c.chassis;setEngine.value=c.engine;setPurchaseDate.value=c.purchaseDate;setPurchaseMileage.value=c.purchaseMileage;setAccent.value=c.accent;setBgOpacity.value=c.backgroundOpacity;setGoals.value=c.goals;setShowroomNote.value=c.showroomNote||"";setIsPublic.checked=!!c.isPublic}
+function saveCarInfo(){const c=activeCar();if(!c)return;c.name=setName.value.trim()||"New Car";c.year=setYear.value.trim();c.make=setMake.value.trim();c.model=setModel.value.trim();c.chassis=setChassis.value.trim()||"N/A";c.engine=setEngine.value.trim()||"N/A";c.purchaseDate=setPurchaseDate.value;c.purchaseMileage=setPurchaseMileage.value.trim();c.accent=setAccent.value;c.backgroundOpacity=setBgOpacity.value;c.goals=setGoals.value;c.showroomNote=setShowroomNote.value;c.isPublic=setIsPublic.checked;save();renderHero();renderGarage();renderTimeline();renderSettings();}
 async function saveWithFeedback(){
+  const c=activeCar();
+  const wasPublic=c?.isPublic;
   saveCarInfo();
+  const nowPublic=activeCar()?.isPublic;
   if(!user){toast("Saved locally — sign in to sync to cloud");return;}
   clearTimeout(cloudTimer);
   cloudSaving=true;
@@ -1375,6 +1407,8 @@ async function saveWithFeedback(){
     lastCloudSaveAt=new Date();
     setSyncStatus("Saved • "+lastCloudSaveAt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),"saved");
     toast("Saved to cloud ✓");
+    if(nowPublic) await publishToShowroom(activeCar());
+    else if(wasPublic&&!nowPublic) await unpublishFromShowroom(activeCar()?.id);
   }catch(e){
     console.error(e);
     setSyncStatus("Save failed","error");
@@ -1386,6 +1420,59 @@ async function saveWithFeedback(){
 
 
 
+async function publishToShowroom(c){
+  if(!c||!user)return;
+  const totalSpend=(c.mods||[]).reduce((s,m)=>s+parseFloat(m.price||0),0)+(c.services||[]).reduce((s,sv)=>s+parseFloat(sv.cost||0),0);
+  const heroUrl=c.carImage?`${SUPABASE_URL}/storage/v1/object/public/garage-images/${user.id}/${c.id}/hero`:null;
+  const{error}=await cloud.from("showroom").upsert({
+    user_id:user.id,car_id:c.id,car_name:c.name,year:c.year,make:c.make,model:c.model,
+    chassis:c.chassis,engine:c.engine,note:c.showroomNote||c.goals||"",
+    hero_url:heroUrl,total_spend:totalSpend,mod_count:(c.mods||[]).length,
+    updated_at:new Date().toISOString()
+  },{onConflict:"user_id,car_id"});
+  if(error)console.error("Showroom publish:",error);
+}
+async function unpublishFromShowroom(carId){
+  if(!user||!carId)return;
+  const{error}=await cloud.from("showroom").delete().eq("user_id",user.id).eq("car_id",carId);
+  if(error)console.error("Showroom unpublish:",error);
+}
+async function handleShowroomToggle(){
+  if(!user){setIsPublic.checked=false;toast("Sign in to use the Showroom");return;}
+}
+function switchGarageView(view){
+  const mine=view==="mine";
+  document.getElementById("garageList").classList.toggle("hidden",!mine);
+  document.getElementById("showroomSection").classList.toggle("hidden",mine);
+  document.getElementById("myGarageBtn").classList.toggle("active",mine);
+  document.getElementById("showroomBtn").classList.toggle("active",!mine);
+  if(!mine)renderShowroom();
+}
+async function renderShowroom(){
+  const el=document.getElementById("showroomList");
+  el.innerHTML='<div class="showroom-empty">Loading…</div>';
+  try{
+    const{data,error}=await cloud.from("showroom").select("*").order("updated_at",{ascending:false}).limit(50);
+    if(error)throw error;
+    if(!data||!data.length){el.innerHTML='<div class="showroom-empty">No builds shared yet — be the first!</div>';return;}
+    el.innerHTML=data.map(r=>`
+      <div class="showroom-card glass">
+        ${r.hero_url?`<img src="${esc(r.hero_url)}" class="showroom-hero" alt="" onerror="this.style.display='none'">` :""}
+        <div class="showroom-info">
+          <h3>${esc(r.car_name||"Unknown Build")}</h3>
+          <p class="showroom-sub">${esc([r.year,r.make,r.model].filter(Boolean).join(" "))}</p>
+          ${r.note?`<p class="showroom-note">${esc(r.note)}</p>`:""}
+          <div class="showroom-stats">
+            <span>${money(r.total_spend||0)}</span>
+            <span>${r.mod_count||0} mod${r.mod_count!==1?"s":""}</span>
+          </div>
+        </div>
+      </div>`).join("");
+  }catch(e){
+    console.error(e);
+    el.innerHTML='<div class="showroom-empty">Couldn\'t load Showroom — try again later.</div>';
+  }
+}
 function todayISO(){
   const d = new Date();
   const offset = d.getTimezoneOffset();
