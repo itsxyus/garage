@@ -514,6 +514,144 @@ input[type=range]{accent-color:var(--accent)}
   }
 }
 
+/* Hero action sheet */
+.action-sheet{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;animation:fade .18s ease both}
+.action-sheet.hidden{display:none}
+.action-card{width:100%;padding:10px 12px max(20px,calc(env(safe-area-inset-bottom) + 10px));background:rgba(18,20,26,.95);backdrop-filter:blur(24px);border-radius:24px 24px 0 0;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:7px}
+.action-btn{width:100%;padding:15px 16px;border:0;border-radius:14px;background:rgba(255,255,255,.06);color:var(--fg);font-size:1rem;text-align:center;cursor:pointer;transition:background .15s}
+.action-btn:active{background:rgba(255,255,255,.13)}
+.action-btn.danger{color:#ff3b3b}
+.action-btn.cancel{background:transparent;color:var(--muted)}
+/* Hero adjust modal */
+.hero-adjust-preview{width:100%;height:190px;object-fit:cover;border-radius:16px;display:block;margin:4px 0 16px}
+/* iPhone 17 Pro Max frame — hidden by default, shown on desktop */
+.phone-chrome{
+  display:none;
+  position:fixed;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:calc(min(520px,100vw - 28px) + 24px);
+  aspect-ratio:9/19.5;
+  border:12px solid #2c2c2e;
+  border-radius:56px;
+  box-sizing:border-box;
+  box-shadow:
+    0 0 0 9999px #000,
+    inset 0 0 0 1.5px rgba(255,255,255,.12),
+    0 0 0 1px rgba(120,120,130,.35);
+  pointer-events:none;
+  z-index:9000;
+}
+/* Dynamic Island */
+.phone-chrome::before{
+  content:"";
+  position:absolute;
+  top:14px;left:50%;
+  transform:translateX(-50%);
+  width:126px;height:36px;
+  background:#000;
+  border-radius:20px;
+}
+/* Home indicator */
+.phone-chrome::after{
+  content:"";
+  position:absolute;
+  bottom:8px;left:50%;
+  transform:translateX(-50%);
+  width:130px;height:5px;
+  background:rgba(255,255,255,.3);
+  border-radius:3px;
+}
+/* Left side: action + vol up + vol down */
+.phone-side-l{
+  position:absolute;
+  left:-5px;top:0;
+  width:5px;height:100%;
+}
+/* Right side: power button */
+.phone-side-r{
+  position:absolute;
+  right:-5px;top:0;
+  width:5px;height:100%;
+}
+/* Shared button style */
+.psb{
+  position:absolute;
+  width:5px;
+  background:#3a3a3c;
+  border-radius:2px 0 0 2px;
+}
+.phone-side-r .psb{
+  border-radius:0 2px 2px 0;
+}
+/* iPhone 17 Pro Max button positions (% of phone height) */
+.psb-action { top:32%;   height:6%;  }
+.psb-vol-up { top:42%;   height:10%; }
+.psb-vol-dn { top:55%;   height:10%; }
+.psb-power  { top:42%;   height:20%; }
+/* Desktop: 9:19.5 phone centered in viewport */
+@media(min-width:700px){
+  :root{
+    /* phone-w constrained so height never exceeds viewport */
+    --phone-w:min(calc(min(520px,100vw - 28px) + 24px),calc(100vh * 9 / 19.5));
+    --phone-h:calc(var(--phone-w) * 19.5 / 9);
+    --screen-w:calc(var(--phone-w) - 24px);
+    --screen-h:calc(var(--phone-h) - 24px);
+  }
+  .phone-chrome{display:block;width:var(--phone-w)}
+  .app{
+    position:fixed;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    width:var(--screen-w);
+    height:var(--screen-h);
+    overflow-y:auto;
+    overflow-x:hidden;
+    border-radius:44px;
+    /* top: clear dynamic island; sides: stay inside bezel curves */
+    padding:76px 18px 0;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+  }
+  .app::-webkit-scrollbar{display:none}
+  .tabs{
+    left:50%;right:auto;
+    transform:translateX(-50%);
+    width:var(--screen-w);
+    /* +12px: sit inside the border, not behind it */
+    bottom:calc((100vh - var(--phone-h)) / 2 + 12px);
+    /* extra side padding to stay clear of bottom-corner curves */
+    padding-left:22px;
+    padding-right:22px;
+    border-radius:20px 20px 0 0;
+    border-left:1px solid rgba(255,255,255,.1);
+    border-right:1px solid rgba(255,255,255,.1);
+  }
+  /* prevent long car names from bleeding past the top-right bezel curve */
+  .back-row h2{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    min-width:0;
+  }
+  /* Force narrow layout — .app is phone-width so viewport breakpoints don't fire */
+  .form-grid{grid-template-columns:1fr 1fr}
+  .span2,.full{grid-column:1/-1}
+  .section-controls{grid-template-columns:104px auto}
+  .section-head{align-items:center}
+  /* Stack due-status below service title (same as mobile breakpoint) */
+  .service-row{grid-template-columns:1fr}
+  .due{text-align:left;font-size:.82rem;margin-top:3px}
+  /* Slightly smaller type to feel like the mobile side */
+  html{font-size:14.5px}
+  .home-top h1{font-size:1.75rem}
+  .topbar h1{font-size:1.85rem}
+  .section-head h2{font-size:1.28rem}
+  .modal-head h2{font-size:1.3rem}
+  .home-model{font-size:.88rem}
+  /* trim side padding for more usable width */
+  .app{padding-left:14px;padding-right:14px}
+}
 </style>
 </head>
 <body>
@@ -1423,5 +1561,17 @@ loadLocal();
 render();
 initCloud();
 </script>
+
+<!-- iPhone 17 Pro Max frame overlay (desktop only) -->
+<div class="phone-chrome">
+  <div class="phone-side-l">
+    <div class="psb psb-action"></div>
+    <div class="psb psb-vol-up"></div>
+    <div class="psb psb-vol-dn"></div>
+  </div>
+  <div class="phone-side-r">
+    <div class="psb psb-power"></div>
+  </div>
+</div>
 </body>
 </html>
