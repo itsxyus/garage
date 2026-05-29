@@ -658,18 +658,16 @@ input[type=range]{accent-color:var(--accent)}
           <label>Engine<input id="setEngine" placeholder="Engine"></label>
           <label>Purchase Date<input id="setPurchaseDate" type="date"></label>
           <label>Purchase Mileage<input id="setPurchaseMileage" inputmode="numeric" placeholder="Mileage"></label>
-          <label class="span2">Accent Color<div class="inline-save"><div class="color-row"><input id="setAccent" type="color"><span>Theme color</span></div><button class="btn primary" onclick="saveCarInfo()">Save Car Info</button></div></label>
+          <label class="span2">Accent Color<div class="inline-save"><div class="color-row"><input id="setAccent" type="color"><span>Theme color</span></div></div></label>
           <label class="span2">Background Opacity<input id="setBgOpacity" type="range" min=".25" max="1" step=".01" oninput="activeCar().backgroundOpacity=this.value;save();renderHero()"></label>
-          <label class="span2">Background URL<input id="setBgUrl" placeholder="Direct image URL"></label>
           <label class="full">Goals<textarea id="setGoals" placeholder="Goals / notes"></textarea></label>
         </div>
         <div class="button-row" style="margin-top:14px">
-          <button class="btn" onclick="pickBackgroundPhoto()">Background Photo</button>
-          <button class="btn" onclick="useHeroAsBackground()">Use Hero</button>
-          <button class="btn danger" onclick="clearBackground()">Reset BG</button><button class="btn danger" onclick="clearActiveCarPhotos()">Clear Car Photos</button><button class="btn danger" onclick="clearAllStoredPhotos()">Clear ALL Photos</button>
+          <button class="btn primary" onclick="saveWithFeedback()">Save</button>
+          <button class="btn" onclick="pickBackgroundPhoto()">Add Background</button>
+          <button class="btn danger" onclick="clearBackground()">Remove Background</button>
+          <button class="btn danger" onclick="clearAllStoredPhotos()">Clear All Photos</button>
           <button class="btn danger" onclick="deleteActiveCar()">Delete Car</button>
-          <button class="btn" onclick="saveCarInfo();forceCloudSave()">Force Cloud Save</button>
-          <button class="btn" onclick="loadCloud()">Load Cloud</button>
         </div>
       </section>
     </div>
@@ -1231,8 +1229,29 @@ function setService(id,k,v){
   }
 }
 
-function renderSettings(){const c=activeCar();if(!c)return;setName.value=c.name;setYear.value=c.year;setMake.value=c.make;setModel.value=c.model;setChassis.value=c.chassis;setEngine.value=c.engine;setPurchaseDate.value=c.purchaseDate;setPurchaseMileage.value=c.purchaseMileage;setAccent.value=c.accent;setBgOpacity.value=c.backgroundOpacity;setBgUrl.value=c.backgroundImage;setGoals.value=c.goals}
-function saveCarInfo(){const c=activeCar();if(!c)return;c.name=setName.value.trim()||"New Car";c.year=setYear.value.trim();c.make=setMake.value.trim();c.model=setModel.value.trim();c.chassis=setChassis.value.trim()||"N/A";c.engine=setEngine.value.trim()||"N/A";c.purchaseDate=setPurchaseDate.value;c.purchaseMileage=setPurchaseMileage.value.trim();c.accent=setAccent.value;c.backgroundOpacity=setBgOpacity.value;c.backgroundImage=setBgUrl.value.trim()||c.backgroundImage;c.goals=setGoals.value;save();renderHero();renderGarage();renderTimeline();renderSettings();toast("Car info saved")}
+function renderSettings(){const c=activeCar();if(!c)return;setName.value=c.name;setYear.value=c.year;setMake.value=c.make;setModel.value=c.model;setChassis.value=c.chassis;setEngine.value=c.engine;setPurchaseDate.value=c.purchaseDate;setPurchaseMileage.value=c.purchaseMileage;setAccent.value=c.accent;setBgOpacity.value=c.backgroundOpacity;setGoals.value=c.goals}
+function saveCarInfo(){const c=activeCar();if(!c)return;c.name=setName.value.trim()||"New Car";c.year=setYear.value.trim();c.make=setMake.value.trim();c.model=setModel.value.trim();c.chassis=setChassis.value.trim()||"N/A";c.engine=setEngine.value.trim()||"N/A";c.purchaseDate=setPurchaseDate.value;c.purchaseMileage=setPurchaseMileage.value.trim();c.accent=setAccent.value;c.backgroundOpacity=setBgOpacity.value;c.goals=setGoals.value;save();renderHero();renderGarage();renderTimeline();renderSettings();}
+async function saveWithFeedback(){
+  saveCarInfo();
+  if(!user){toast("Saved locally — sign in to sync to cloud");return;}
+  clearTimeout(cloudTimer);
+  cloudSaving=true;
+  setSyncStatus("Saving…","saving");
+  try{
+    const snap=JSON.parse(JSON.stringify(state));
+    const r=await cloud.from("garage_data").upsert({user_id:user.id,data:snap,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+    if(r.error)throw r.error;
+    lastCloudSaveAt=new Date();
+    setSyncStatus("Saved • "+lastCloudSaveAt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),"saved");
+    toast("Saved to cloud ✓");
+  }catch(e){
+    console.error(e);
+    setSyncStatus("Save failed","error");
+    toast("Saved locally — cloud unavailable");
+  }finally{
+    cloudSaving=false;
+  }
+}
 
 
 
