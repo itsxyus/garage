@@ -679,6 +679,18 @@ input[type=range]{accent-color:var(--accent)}
 .showroom-toggle-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line);margin-top:4px}
 .showroom-toggle-row input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent);flex-shrink:0}
 .showroom-toggle-row span{font-size:.9rem;color:var(--text);line-height:1.35}
+/* Public profile */
+.profile-hero{width:100%;max-height:240px;object-fit:contain;display:block;margin:0 auto 10px}
+.profile-note-block{font-size:.9rem;line-height:1.5;color:var(--muted);padding:10px 12px;background:rgba(255,255,255,.04);border-radius:12px;border:1px solid var(--line);margin:8px 0 0}
+.profile-cat-label{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;font-weight:500;margin:14px 0 2px}
+.profile-mod-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:10px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.profile-mod-row:last-child{border-bottom:none}
+.profile-mod-name{font-size:.95rem;font-weight:550;line-height:1.2}
+.profile-mod-meta{font-size:.78rem;color:var(--muted);margin-top:3px}
+.profile-mod-price{color:var(--accent);font-weight:600;font-size:.9rem;white-space:nowrap;text-align:right}
+.profile-mod-status{font-size:.72rem;color:var(--muted);text-align:right;margin-top:3px}
+.showroom-card{cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}
+.showroom-card:active{transform:scale(.97)}
 </style>
 </head>
 <body>
@@ -846,6 +858,23 @@ input[type=range]{accent-color:var(--accent)}
         </div>
       </section>
     </div>
+  </div>
+
+  <!-- Public read-only car profile -->
+  <div id="publicProfile" class="hidden">
+    <div class="back-row" style="margin-bottom:12px">
+      <button class="btn" onclick="closePublicProfile()">← Showroom</button>
+      <span id="profileBadge" style="color:var(--muted);font-size:.85rem"></span>
+    </div>
+    <img id="profileHero" class="profile-hero" alt="" onerror="this.style.display='none'" style="display:none">
+    <section class="section glass" style="margin-top:0;padding:16px">
+      <h1 id="profileName" style="margin:0 0 4px;font-size:1.75rem;font-weight:650;letter-spacing:-.04em"></h1>
+      <p id="profileSub" style="margin:0 0 10px;color:var(--accent);font-size:.92rem"></p>
+      <div id="profileTags" class="home-tags" style="justify-content:flex-start;margin-bottom:10px"></div>
+      <div id="profileNote" class="profile-note-block" style="display:none"></div>
+      <div id="profileSpend" class="total-card" style="margin-top:12px"></div>
+    </section>
+    <div id="profileMods"></div>
   </div>
 </div>
 
@@ -1508,7 +1537,7 @@ function applyShowroomFilters(){
     return;
   }
   el.innerHTML=filtered.map(r=>`
-    <div class="showroom-card glass">
+    <div class="showroom-card glass" onclick="openPublicProfile(${JSON.stringify(r._car_id||'')})">
       <div class="showroom-info">
         <h3>${esc(r.car_name||"Unknown Build")}</h3>
         <p class="showroom-sub">${esc([r.year,r.make,r.model].filter(Boolean).join(" "))}</p>
@@ -1524,6 +1553,100 @@ function clearShowroomFilters(){
   ["filterMake","filterModel","filterYearMin","filterYearMax"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
   applyShowroomFilters();
 }
+async function openPublicProfile(carId){
+  if(!carId)return;
+  document.getElementById("garageHome").classList.add("hidden");
+  document.getElementById("publicProfile").classList.remove("hidden");
+  history.pushState({profile:carId},"","?profile="+encodeURIComponent(carId));
+  // Reset profile UI
+  const heroEl=document.getElementById("profileHero");
+  heroEl.style.display="none";heroEl.src="";
+  document.getElementById("profileMods").innerHTML='<section class="section glass"><div style="text-align:center;padding:20px;color:var(--muted)">Loading…</div></section>';
+  // Own car? use local state
+  const own=(state.cars||[]).find(c=>c.id===carId);
+  if(own){renderPublicProfile(own,true);return;}
+  // Other user's car — fetch via RPC
+  try{
+    const{data,error}=await cloud.rpc("get_public_car",{p_car_id:carId});
+    if(error)throw error;
+    if(!data){document.getElementById("profileMods").innerHTML='<section class="section glass"><div style="text-align:center;padding:20px;color:var(--muted)">This build is no longer public.</div></section>';return;}
+    renderPublicProfile(data,false);
+  }catch(e){
+    console.error(e);
+    document.getElementById("profileMods").innerHTML='<section class="section glass"><div style="text-align:center;padding:20px;color:var(--muted)">Couldn\'t load this build — run the get_public_car SQL function.</div></section>';
+  }
+}
+function renderPublicProfile(d,isOwn){
+  const name=d.name||d.car_name||"Unknown Build";
+  const sub=[d.year,d.make,d.model].filter(Boolean).join(" ");
+  document.getElementById("profileName").textContent=name;
+  document.getElementById("profileSub").textContent=sub;
+  document.getElementById("profileBadge").textContent=sub;
+  // Tags
+  const tags=[];
+  const ch=d.chassis||d.chassis;const en=d.engine;
+  if(ch&&ch!=="N/A")tags.push(ch);
+  if(en&&en!=="N/A")tags.push(en);
+  document.getElementById("profileTags").innerHTML=tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("");
+  // Hero image
+  const heroEl=document.getElementById("profileHero");
+  const heroSrc=isOwn?(d.carImage||null):(d.hero_url||null);
+  if(heroSrc){heroEl.src=heroSrc;heroEl.style.display="block";}
+  // Note
+  const note=d.showroomNote||d.note||d.goals||"";
+  const noteEl=document.getElementById("profileNote");
+  if(note){noteEl.textContent=note;noteEl.style.display="block";}else{noteEl.style.display="none";}
+  // Spend
+  const mods=Array.isArray(d.mods)?d.mods:(d.mods?JSON.parse(JSON.stringify(d.mods)):[]);
+  const svcs=Array.isArray(d.services)?d.services:(d.services?JSON.parse(JSON.stringify(d.services)):[]);
+  const modTotal=mods.reduce((s,m)=>s+parseFloat(m.price||0),0);
+  const svcTotal=svcs.reduce((s,sv)=>s+parseFloat(sv.cost||0),0);
+  document.getElementById("profileSpend").innerHTML=`
+    <div class="total-row main"><span>Total Spent</span><b>${money(modTotal+svcTotal)}</b></div>
+    <div class="total-row"><span>Mods</span><b>${money(modTotal)}</b></div>
+    <div class="total-row"><span>Services</span><b>${money(svcTotal)}</b></div>`;
+  // Mods by category
+  if(!mods.length){
+    document.getElementById("profileMods").innerHTML='';return;
+  }
+  const cats={};
+  mods.forEach(m=>{const cat=m.category||"Other";(cats[cat]=cats[cat]||[]).push(m);});
+  document.getElementById("profileMods").innerHTML=
+    `<section class="section glass"><div class="section-head"><h2>Mods (${mods.length})</h2></div>`+
+    Object.entries(cats).map(([cat,items])=>
+      `<div class="profile-cat-label">${esc(cat)}</div>`+
+      items.map(m=>`
+        <div class="profile-mod-row">
+          <div>
+            <div class="profile-mod-name">${esc(m.name||"")}</div>
+            ${m.brand?`<div class="profile-mod-meta">${esc(m.brand)}</div>`:""}
+            ${m.notes?`<div class="profile-mod-meta">${esc(m.notes)}</div>`:""}
+          </div>
+          <div>
+            ${m.price?`<div class="profile-mod-price">${money(m.price)}</div>`:""}
+            <div class="profile-mod-status">${esc(m.status||"")}</div>
+          </div>
+        </div>`).join("")
+    ).join("")+`</section>`;
+}
+function closePublicProfile(){
+  document.getElementById("publicProfile").classList.add("hidden");
+  document.getElementById("garageHome").classList.remove("hidden");
+  history.pushState({},"",window.location.pathname);
+  switchGarageView("showroom");
+}
+window.addEventListener("popstate",e=>{
+  if(e.state&&e.state.profile){
+    openPublicProfile(e.state.profile);
+  } else if(!document.getElementById("publicProfile").classList.contains("hidden")){
+    closePublicProfile();
+  }
+});
+// Open profile directly if page loaded with ?profile= param
+(()=>{
+  const pid=new URLSearchParams(window.location.search).get("profile");
+  if(pid) window.addEventListener("appReady",()=>openPublicProfile(pid),{once:true});
+})();
 function todayISO(){
   const d = new Date();
   const offset = d.getTimezoneOffset();
@@ -1788,6 +1911,7 @@ function deleteActiveCar(){const c=activeCar();if(c)deleteCar(c.id)}
 loadLocal();
 render();
 initCloud();
+window.dispatchEvent(new Event("appReady"));
 
 // Flush any pending cloud save when user closes or refreshes the tab
 window.addEventListener("beforeunload",()=>{if(cloudSavePending&&user)saveCloudNow(true,true);});
