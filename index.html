@@ -552,16 +552,6 @@ input[type=range]{accent-color:var(--accent)}
   background:#000;
   border-radius:20px;
 }
-/* Home indicator */
-.phone-chrome::after{
-  content:"";
-  position:absolute;
-  bottom:8px;left:50%;
-  transform:translateX(-50%);
-  width:130px;height:5px;
-  background:rgba(255,255,255,.3);
-  border-radius:3px;
-}
 /* Left side: action + vol up + vol down */
 .phone-side-l{
   position:absolute;
@@ -649,8 +639,8 @@ input[type=range]{accent-color:var(--accent)}
   .section-head h2{font-size:1.28rem}
   .modal-head h2{font-size:1.3rem}
   .home-model{font-size:.88rem}
-  /* trim side padding for more usable width */
-  .app{padding-left:14px;padding-right:14px}
+  /* trim side padding; add bottom clearance for tabs bar */
+  .app{padding-left:14px;padding-right:14px;padding-bottom:88px}
 }
 </style>
 </head>
