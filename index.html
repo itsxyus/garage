@@ -538,6 +538,106 @@ input[type=range]{accent-color:var(--accent)}
     border-left:1px solid rgba(255,255,255,.1);
     border-right:1px solid rgba(255,255,255,.1);
   }
+  /* iPhone frame visible on desktop */
+  .phone-chrome{display:block}
+  body{background-attachment:fixed}
+  /* push content below Dynamic Island (12px border + 14px gap + 36px pill + 14px breathing room) */
+  .app{padding-top:76px}
+}
+
+/* iPhone 17 Pro Max frame overlay */
+.phone-chrome{
+  display:none;
+  position:fixed;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  /* frame: 12px border = phone bezel thickness */
+  width:calc(min(520px,100vw - 28px) + 24px);
+  /* tall enough to be full viewport */
+  height:100vh;
+  border:12px solid #1a1a1c;
+  border-radius:56px;
+  box-sizing:border-box;
+  /* black out everything outside the phone frame */
+  box-shadow:
+    0 0 0 9999px #000,
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    0 0 0 1px rgba(255,255,255,.05);
+  pointer-events:none;
+  z-index:9000;
+}
+/* Dynamic Island */
+.phone-chrome::before{
+  content:"";
+  position:absolute;
+  top:14px;
+  left:50%;
+  transform:translateX(-50%);
+  width:126px;
+  height:36px;
+  background:#000;
+  border-radius:20px;
+  z-index:1;
+  box-shadow:0 0 0 2px rgba(255,255,255,.04);
+}
+/* Home indicator bar */
+.phone-chrome::after{
+  content:"";
+  position:absolute;
+  bottom:8px;
+  left:50%;
+  transform:translateX(-50%);
+  width:130px;
+  height:5px;
+  background:rgba(255,255,255,.32);
+  border-radius:3px;
+}
+/* Left side: mute switch + volume buttons */
+.phone-side-l{
+  position:absolute;
+  left:-18px;
+  top:0;
+  width:6px;
+  height:100%;
+  pointer-events:none;
+  /* mute switch (top), vol up, vol down stacked via box-shadow */
+  box-shadow:
+    /* mute switch */
+    0 -1px 0 0 transparent,
+    inset 0 0 0 0 transparent;
+}
+.phone-side-l::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:100px;
+  width:6px;
+  height:32px;
+  background:#1a1a1c;
+  border-radius:3px 0 0 3px;
+  /* mute + two vol buttons */
+  box-shadow:
+    0 52px 0 #1a1a1c,
+    0 100px 0 #1a1a1c;
+}
+/* Right side: power button */
+.phone-side-r{
+  position:absolute;
+  right:-18px;
+  top:0;
+  width:6px;
+  height:100%;
+  pointer-events:none;
+}
+.phone-side-r::before{
+  content:"";
+  position:absolute;
+  right:0;
+  top:160px;
+  width:6px;
+  height:72px;
+  background:#1a1a1c;
+  border-radius:0 3px 3px 0;
 }
 </style>
 </head>
@@ -1513,5 +1613,11 @@ window.addEventListener("beforeunload",()=>{if(cloudSavePending&&user)saveCloudN
 // Safety net: push pending saves every 30 seconds in case something slipped through
 setInterval(()=>{if(cloudSavePending&&user&&!cloudSaving)saveCloudNow(true);},30000);
 </script>
+
+<!-- iPhone 17 Pro Max frame overlay (desktop only) -->
+<div class="phone-chrome">
+  <div class="phone-side-l"></div>
+  <div class="phone-side-r"></div>
+</div>
 </body>
 </html>
