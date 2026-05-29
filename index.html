@@ -530,10 +530,10 @@ input[type=range]{accent-color:var(--accent)}
 .phone-chrome{
   display:none;
   position:fixed;
-  top:0;left:50%;
-  transform:translateX(-50%);
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
   width:calc(min(520px,100vw - 28px) + 24px);
-  height:100vh;
+  aspect-ratio:9/19.5;
   border:12px solid #2c2c2e;
   border-radius:56px;
   box-sizing:border-box;
@@ -564,7 +564,7 @@ input[type=range]{accent-color:var(--accent)}
   background:rgba(255,255,255,.3);
   border-radius:3px;
 }
-/* Left side: mute + vol up + vol down flush with phone edge */
+/* Left side: mute + vol up + vol down */
 .phone-side-l{
   position:absolute;
   left:-6px;top:0;
@@ -593,15 +593,22 @@ input[type=range]{accent-color:var(--accent)}
   background:#2c2c2e;
   border-radius:0 3px 3px 0;
 }
-/* Desktop: .app IS the phone screen — fixed, scrollable within the frame */
+/* Desktop: 9:19.5 phone centered in viewport */
 @media(min-width:700px){
-  .phone-chrome{display:block}
+  :root{
+    /* phone-w constrained so height never exceeds viewport */
+    --phone-w:min(calc(min(520px,100vw - 28px) + 24px),calc(100vh * 9 / 19.5));
+    --phone-h:calc(var(--phone-w) * 19.5 / 9);
+    --screen-w:calc(var(--phone-w) - 24px);
+    --screen-h:calc(var(--phone-h) - 24px);
+  }
+  .phone-chrome{display:block;width:var(--phone-w)}
   .app{
     position:fixed;
-    top:0;left:50%;
-    transform:translateX(-50%);
-    width:min(520px,100vw - 28px);
-    height:100vh;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    width:var(--screen-w);
+    height:var(--screen-h);
     overflow-y:auto;
     overflow-x:hidden;
     border-radius:44px;
@@ -613,14 +620,13 @@ input[type=range]{accent-color:var(--accent)}
   .tabs{
     left:50%;right:auto;
     transform:translateX(-50%);
-    width:min(520px,100vw - 28px);
+    width:var(--screen-w);
+    /* align with bottom of phone frame regardless of viewport height */
+    bottom:calc((100vh - var(--phone-h)) / 2);
     border-radius:20px 20px 0 0;
     border-left:1px solid rgba(255,255,255,.1);
     border-right:1px solid rgba(255,255,255,.1);
   }
-}
-  background:#2c2c2e;
-  border-radius:0 3px 3px 0;
 }
 </style>
 </head>
