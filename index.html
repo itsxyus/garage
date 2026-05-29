@@ -554,45 +554,33 @@ input[type=range]{accent-color:var(--accent)}
   background:#000;
   border-radius:20px;
 }
-/* Home indicator */
-.phone-chrome::after{
-  content:"";
-  position:absolute;
-  bottom:8px;left:50%;
-  transform:translateX(-50%);
-  width:130px;height:5px;
-  background:rgba(255,255,255,.3);
-  border-radius:3px;
-}
-/* Left side: mute + vol up + vol down */
+/* Left side: action + vol up + vol down — offset clears the 12px border */
 .phone-side-l{
   position:absolute;
-  left:-6px;top:0;
-  width:6px;height:100%;
-}
-.phone-side-l::before{
-  content:"";
-  position:absolute;
-  left:0;top:95px;
-  width:6px;height:30px;
-  background:#2c2c2e;
-  border-radius:3px 0 0 3px;
-  box-shadow:0 50px 0 #2c2c2e,0 96px 0 #2c2c2e;
+  left:-17px;top:0;
+  width:5px;height:100%;
 }
 /* Right side: power button */
 .phone-side-r{
   position:absolute;
-  right:-6px;top:0;
-  width:6px;height:100%;
+  right:-17px;top:0;
+  width:5px;height:100%;
 }
-.phone-side-r::before{
-  content:"";
+/* Shared button style */
+.psb{
   position:absolute;
-  right:0;top:160px;
-  width:6px;height:72px;
-  background:#2c2c2e;
-  border-radius:0 3px 3px 0;
+  width:5px;
+  background:#484849;
+  border-radius:2px 0 0 2px;
 }
+.phone-side-r .psb{
+  border-radius:0 2px 2px 0;
+}
+/* iPhone 17 Pro Max button positions (% of phone height) */
+.psb-action { top:32%;   height:6%;  }
+.psb-vol-up { top:42%;   height:10%; }
+.psb-vol-dn { top:55%;   height:10%; }
+.psb-power  { top:42%;   height:20%; }
 /* Desktop: 9:19.5 phone centered in viewport */
 @media(min-width:700px){
   :root{
@@ -653,8 +641,19 @@ input[type=range]{accent-color:var(--accent)}
   .section-head h2{font-size:1.28rem}
   .modal-head h2{font-size:1.3rem}
   .home-model{font-size:.88rem}
-  /* trim side padding for more usable width */
-  .app{padding-left:14px;padding-right:14px}
+  /* trim side padding; add bottom clearance for tabs bar */
+  .app{padding-left:14px;padding-right:14px;padding-bottom:88px}
+  /* constrain auth overlay to phone screen so it doesn't overflow the bezel */
+  .auth-overlay{
+    top:50%;left:50%;right:auto;bottom:auto;
+    width:var(--screen-w);
+    height:var(--screen-h);
+    transform:translate(-50%,-50%);
+    border-radius:44px;
+    overflow:hidden;
+    padding:14px;
+  }
+  .auth-card{width:100%}
 }
 </style>
 </head>
@@ -1660,8 +1659,14 @@ setInterval(()=>{if(cloudSavePending&&user&&!cloudSaving)saveCloudNow(true);},30
 
 <!-- iPhone 17 Pro Max frame overlay (desktop only) -->
 <div class="phone-chrome">
-  <div class="phone-side-l"></div>
-  <div class="phone-side-r"></div>
+  <div class="phone-side-l">
+    <div class="psb psb-action"></div>
+    <div class="psb psb-vol-up"></div>
+    <div class="psb psb-vol-dn"></div>
+  </div>
+  <div class="phone-side-r">
+    <div class="psb psb-power"></div>
+  </div>
 </div>
 </body>
 </html>
