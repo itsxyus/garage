@@ -1434,8 +1434,22 @@ async function saveWithFeedback(){
 
 
 
-function handleShowroomToggle(){
-  if(!user){setIsPublic.checked=false;toast("Sign in to use the Showroom");}
+async function handleShowroomToggle(){
+  if(!user){setIsPublic.checked=false;toast("Sign in to use the Showroom");return;}
+  const c=activeCar();
+  if(!c)return;
+  c.isPublic=setIsPublic.checked;
+  save();
+  if(user){
+    try{
+      const snap=JSON.parse(JSON.stringify(state));
+      await cloud.from("garage_data").upsert({user_id:user.id,data:snap,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+      toast(c.isPublic?"Added to Showroom ✓":"Removed from Showroom");
+    }catch(e){
+      console.error(e);
+      toast(c.isPublic?"Added locally — cloud sync pending":"Removed from Showroom");
+    }
+  }
 }
 function switchGarageView(view){
   const mine=view==="mine";
