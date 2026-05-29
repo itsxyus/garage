@@ -1489,13 +1489,15 @@ function switchGarageView(view){
   if(!mine)renderShowroom();
 }
 let showroomCache=[];
+let profileSort="category";
+let _profileData=null;
 function localPublicCars(){
   return (state.cars||[]).filter(c=>c.isPublic).map(c=>({
     _car_id:c.id,
     car_name:c.name,year:c.year,make:c.make,model:c.model,
     chassis:c.chassis,engine:c.engine,
     note:c.showroomNote||c.goals||"",
-    total_spend:(c.mods||[]).reduce((s,m)=>s+parseFloat(m.price||0),0)+(c.services||[]).reduce((s,sv)=>s+parseFloat(sv.cost||0),0),
+    total_spend:(c.mods||[]).filter(m=>m.status!=="Planned").reduce((s,m)=>s+parseFloat(m.price||0),0)+(c.services||[]).reduce((s,sv)=>s+parseFloat(sv.cost||0),0),
     mod_count:(c.mods||[]).length
   }));
 }
@@ -1560,6 +1562,7 @@ function clearShowroomFilters(){
 }
 async function openPublicProfile(carId){
   if(!carId)return;
+  profileSort="category";
   document.getElementById("garageHome").classList.add("hidden");
   document.getElementById("publicProfile").classList.remove("hidden");
   history.pushState({profile:carId},"","?profile="+encodeURIComponent(carId));
@@ -1582,6 +1585,7 @@ async function openPublicProfile(carId){
   }
 }
 function renderPublicProfile(d,isOwn){
+  _profileData=d;
   const name=d.name||d.car_name||"Unknown Build";
   const sub=[d.year,d.make,d.model].filter(Boolean).join(" ");
   document.getElementById("profileName").textContent=name;
@@ -1589,10 +1593,10 @@ function renderPublicProfile(d,isOwn){
   document.getElementById("profileBadge").textContent=sub;
   // Tags
   const tags=[];
-  const ch=d.chassis||d.chassis;const en=d.engine;
+  const ch=d.chassis;const en=d.engine;
   if(ch&&ch!=="N/A")tags.push(ch);
   if(en&&en!=="N/A")tags.push(en);
-  document.getElementById("profileTags").innerHTML=tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("");
+  document.getElementById("profileTags").innerHTML=tags.map(t=>'<span class="tag">'+esc(t)+'</span>').join("");
   // Hero image
   const heroEl=document.getElementById("profileHero");
   const heroSrc=isOwn?(d.carImage||null):(d.hero_url||null);
@@ -1601,37 +1605,66 @@ function renderPublicProfile(d,isOwn){
   const note=d.showroomNote||d.note||d.goals||"";
   const noteEl=document.getElementById("profileNote");
   if(note){noteEl.textContent=note;noteEl.style.display="block";}else{noteEl.style.display="none";}
-  // Spend
+  // Spend — exclude Planned from "Total Spent", show it separately
   const mods=Array.isArray(d.mods)?d.mods:(d.mods?JSON.parse(JSON.stringify(d.mods)):[]);
   const svcs=Array.isArray(d.services)?d.services:(d.services?JSON.parse(JSON.stringify(d.services)):[]);
-  const modTotal=mods.reduce((s,m)=>s+parseFloat(m.price||0),0);
+  const modPaid=mods.filter(m=>m.status!=="Planned").reduce((s,m)=>s+parseFloat(m.price||0),0);
+  const modPlanned=mods.filter(m=>m.status==="Planned").reduce((s,m)=>s+parseFloat(m.price||0),0);
   const svcTotal=svcs.reduce((s,sv)=>s+parseFloat(sv.cost||0),0);
-  document.getElementById("profileSpend").innerHTML=`
-    <div class="total-row main"><span>Total Spent</span><b>${money(modTotal+svcTotal)}</b></div>
-    <div class="total-row"><span>Mods</span><b>${money(modTotal)}</b></div>
-    <div class="total-row"><span>Services</span><b>${money(svcTotal)}</b></div>`;
-  // Mods by category
-  if(!mods.length){
-    document.getElementById("profileMods").innerHTML='';return;
-  }
-  const cats={};
-  mods.forEach(m=>{const cat=m.category||"Other";(cats[cat]=cats[cat]||[]).push(m);});
-  var modsHTML='<section class="section glass"><div class="section-head"><h2>Mods ('+mods.length+')</h2></div>';
-  Object.entries(cats).forEach(function([cat,items]){
-    modsHTML+='<div class="profile-cat-label">'+esc(cat)+'</div>';
-    items.forEach(function(m){
-      modsHTML+='<div class="profile-mod-row"><div>'
-        +'<div class="profile-mod-name">'+esc(m.name||"")+'</div>';
-      if(m.brand)modsHTML+='<div class="profile-mod-meta">'+esc(m.brand)+'</div>';
-      if(m.notes)modsHTML+='<div class="profile-mod-meta">'+esc(m.notes)+'</div>';
-      modsHTML+='</div><div>';
-      if(m.price)modsHTML+='<div class="profile-mod-price">'+money(m.price)+'</div>';
-      modsHTML+='<div class="profile-mod-status">'+esc(m.status||"")+'</div>';
-      modsHTML+='</div></div>';
+  var spendHTML='<div class="total-row main"><span>Total Spent</span><b>'+money(modPaid+svcTotal)+'</b></div>'
+    +'<div class="total-row"><span>Mods</span><b>'+money(modPaid)+'</b></div>'
+    +'<div class="total-row"><span>Services</span><b>'+money(svcTotal)+'</b></div>';
+  if(modPlanned)spendHTML+='<div class="total-row"><span>Planned</span><b>'+money(modPlanned)+'</b></div>';
+  document.getElementById("profileSpend").innerHTML=spendHTML;
+  // Mods list
+  renderProfileMods(mods);
+}
+function profileModRowHTML(m){
+  var h='<div class="profile-mod-row"><div>'
+    +'<div class="profile-mod-name">'+esc(m.name||"")+'</div>';
+  if(m.brand)h+='<div class="profile-mod-meta">'+esc(m.brand)+'</div>';
+  if(m.notes)h+='<div class="profile-mod-meta">'+esc(m.notes)+'</div>';
+  h+='</div><div>'
+    +'<div class="profile-mod-price">'+money(m.price||0)+'</div>'
+    +'<div class="profile-mod-status">'+esc(m.status||"")+'</div>'
+    +'</div></div>';
+  return h;
+}
+function setProfileSort(v){
+  profileSort=v;
+  if(!_profileData)return;
+  const mods=Array.isArray(_profileData.mods)?_profileData.mods:(_profileData.mods?JSON.parse(JSON.stringify(_profileData.mods)):[]);
+  renderProfileMods(mods);
+}
+function renderProfileMods(mods){
+  const el=document.getElementById("profileMods");
+  if(!mods.length){el.innerHTML='';return;}
+  var html='<section class="section glass">'
+    +'<div class="section-head">'
+    +'<h2>Mods ('+mods.length+')</h2>'
+    +'<select class="sort-select" onchange="setProfileSort(this.value)">'
+    +'<option value="category"'+(profileSort==="category"?" selected":"")+'>Category</option>'
+    +'<option value="priceHigh"'+(profileSort==="priceHigh"?" selected":"")+'>Price ↓</option>'
+    +'<option value="priceLow"'+(profileSort==="priceLow"?" selected":"")+'>Price ↑</option>'
+    +'<option value="status"'+(profileSort==="status"?" selected":"")+'>Status</option>'
+    +'</select>'
+    +'</div>';
+  if(profileSort==="category"){
+    const cats={};
+    mods.forEach(function(m){const cat=m.category||"Other";(cats[cat]=cats[cat]||[]).push(m);});
+    Object.entries(cats).forEach(function([cat,items]){
+      html+='<div class="profile-cat-label">'+esc(cat)+'</div>';
+      items.forEach(function(m){html+=profileModRowHTML(m);});
     });
-  });
-  modsHTML+='</section>';
-  document.getElementById("profileMods").innerHTML=modsHTML;
+  }else{
+    const sorted=[...mods];
+    if(profileSort==="priceHigh")sorted.sort(function(a,b){return parseFloat(b.price||0)-parseFloat(a.price||0);});
+    if(profileSort==="priceLow")sorted.sort(function(a,b){return parseFloat(a.price||0)-parseFloat(b.price||0);});
+    if(profileSort==="status"){const o={Installed:0,Ordered:1,Planned:2};sorted.sort(function(a,b){return (o[a.status]??3)-(o[b.status]??3);});}
+    sorted.forEach(function(m){html+=profileModRowHTML(m);});
+  }
+  html+='</section>';
+  el.innerHTML=html;
 }
 function closePublicProfile(){
   document.getElementById("publicProfile").classList.add("hidden");
