@@ -660,6 +660,12 @@ input[type=range]{accent-color:var(--accent)}
 .garage-view-toggle{display:flex;gap:8px;margin-bottom:16px}
 .garage-view-toggle .btn{flex:1;text-align:center;font-weight:500}
 .garage-view-toggle .btn.active{background:linear-gradient(135deg,var(--accent),rgba(90,0,0,.85));border-color:var(--accent);color:#fff}
+.showroom-filters{padding:12px 14px;margin-bottom:14px;border-radius:16px;display:flex;flex-direction:column;gap:8px}
+.showroom-filter-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.showroom-year-row{display:flex;align-items:center;gap:6px}
+.showroom-year-row input{flex:1;min-width:0}
+.showroom-filter-label{color:var(--muted);font-size:.8rem;white-space:nowrap}
+.showroom-year-sep{color:var(--muted)}
 .showroom-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
 .showroom-card{overflow:hidden;border-radius:22px;display:flex;flex-direction:column}
 .showroom-hero{width:100%;height:160px;object-fit:contain;background:rgba(255,255,255,.03);display:block}
@@ -746,6 +752,19 @@ input[type=range]{accent-color:var(--accent)}
     </div>
     <div class="garage-grid" id="garageList"></div>
     <div id="showroomSection" class="hidden">
+      <div class="showroom-filters glass">
+        <div class="showroom-filter-row">
+          <input type="text" id="filterMake" placeholder="Make" oninput="applyShowroomFilters()">
+          <input type="text" id="filterModel" placeholder="Model" oninput="applyShowroomFilters()">
+        </div>
+        <div class="showroom-filter-row showroom-year-row">
+          <span class="showroom-filter-label">Year</span>
+          <input type="number" id="filterYearMin" placeholder="From" inputmode="numeric" min="1900" max="2030" oninput="applyShowroomFilters()">
+          <span class="showroom-year-sep">–</span>
+          <input type="number" id="filterYearMax" placeholder="To" inputmode="numeric" min="1900" max="2030" oninput="applyShowroomFilters()">
+          <button class="btn" onclick="clearShowroomFilters()" style="padding:8px 12px;font-size:.8rem">Clear</button>
+        </div>
+      </div>
       <div class="showroom-grid" id="showroomList"></div>
     </div>
   </div>
@@ -1392,10 +1411,7 @@ function setService(id,k,v){
 function renderSettings(){const c=activeCar();if(!c)return;setName.value=c.name;setYear.value=c.year;setMake.value=c.make;setModel.value=c.model;setChassis.value=c.chassis;setEngine.value=c.engine;setPurchaseDate.value=c.purchaseDate;setPurchaseMileage.value=c.purchaseMileage;setAccent.value=c.accent;setBgOpacity.value=c.backgroundOpacity;setGoals.value=c.goals;setShowroomNote.value=c.showroomNote||"";setIsPublic.checked=!!c.isPublic}
 function saveCarInfo(){const c=activeCar();if(!c)return;c.name=setName.value.trim()||"New Car";c.year=setYear.value.trim();c.make=setMake.value.trim();c.model=setModel.value.trim();c.chassis=setChassis.value.trim()||"N/A";c.engine=setEngine.value.trim()||"N/A";c.purchaseDate=setPurchaseDate.value;c.purchaseMileage=setPurchaseMileage.value.trim();c.accent=setAccent.value;c.backgroundOpacity=setBgOpacity.value;c.goals=setGoals.value;c.showroomNote=setShowroomNote.value;c.isPublic=setIsPublic.checked;save();renderHero();renderGarage();renderTimeline();renderSettings();}
 async function saveWithFeedback(){
-  const c=activeCar();
-  const wasPublic=c?.isPublic;
   saveCarInfo();
-  const nowPublic=activeCar()?.isPublic;
   if(!user){toast("Saved locally — sign in to sync to cloud");return;}
   clearTimeout(cloudTimer);
   cloudSaving=true;
@@ -1407,8 +1423,6 @@ async function saveWithFeedback(){
     lastCloudSaveAt=new Date();
     setSyncStatus("Saved • "+lastCloudSaveAt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),"saved");
     toast("Saved to cloud ✓");
-    if(nowPublic) await publishToShowroom(activeCar());
-    else if(wasPublic&&!nowPublic) await unpublishFromShowroom(activeCar()?.id);
   }catch(e){
     console.error(e);
     setSyncStatus("Save failed","error");
@@ -1420,25 +1434,8 @@ async function saveWithFeedback(){
 
 
 
-async function publishToShowroom(c){
-  if(!c||!user)return;
-  const totalSpend=(c.mods||[]).reduce((s,m)=>s+parseFloat(m.price||0),0)+(c.services||[]).reduce((s,sv)=>s+parseFloat(sv.cost||0),0);
-  const heroUrl=c.carImage?`${SUPABASE_URL}/storage/v1/object/public/garage-images/${user.id}/${c.id}/hero`:null;
-  const{error}=await cloud.from("showroom").upsert({
-    user_id:user.id,car_id:c.id,car_name:c.name,year:c.year,make:c.make,model:c.model,
-    chassis:c.chassis,engine:c.engine,note:c.showroomNote||c.goals||"",
-    hero_url:heroUrl,total_spend:totalSpend,mod_count:(c.mods||[]).length,
-    updated_at:new Date().toISOString()
-  },{onConflict:"user_id,car_id"});
-  if(error)console.error("Showroom publish:",error);
-}
-async function unpublishFromShowroom(carId){
-  if(!user||!carId)return;
-  const{error}=await cloud.from("showroom").delete().eq("user_id",user.id).eq("car_id",carId);
-  if(error)console.error("Showroom unpublish:",error);
-}
-async function handleShowroomToggle(){
-  if(!user){setIsPublic.checked=false;toast("Sign in to use the Showroom");return;}
+function handleShowroomToggle(){
+  if(!user){setIsPublic.checked=false;toast("Sign in to use the Showroom");}
 }
 function switchGarageView(view){
   const mine=view==="mine";
@@ -1448,30 +1445,55 @@ function switchGarageView(view){
   document.getElementById("showroomBtn").classList.toggle("active",!mine);
   if(!mine)renderShowroom();
 }
+let showroomCache=[];
 async function renderShowroom(){
   const el=document.getElementById("showroomList");
+  showroomCache=[];
   el.innerHTML='<div class="showroom-empty">Loading…</div>';
   try{
-    const{data,error}=await cloud.from("showroom").select("*").order("updated_at",{ascending:false}).limit(50);
+    const{data,error}=await cloud.rpc("get_showroom_cars");
     if(error)throw error;
-    if(!data||!data.length){el.innerHTML='<div class="showroom-empty">No builds shared yet — be the first!</div>';return;}
-    el.innerHTML=data.map(r=>`
-      <div class="showroom-card glass">
-        ${r.hero_url?`<img src="${esc(r.hero_url)}" class="showroom-hero" alt="" onerror="this.style.display='none'">` :""}
-        <div class="showroom-info">
-          <h3>${esc(r.car_name||"Unknown Build")}</h3>
-          <p class="showroom-sub">${esc([r.year,r.make,r.model].filter(Boolean).join(" "))}</p>
-          ${r.note?`<p class="showroom-note">${esc(r.note)}</p>`:""}
-          <div class="showroom-stats">
-            <span>${money(r.total_spend||0)}</span>
-            <span>${r.mod_count||0} mod${r.mod_count!==1?"s":""}</span>
-          </div>
-        </div>
-      </div>`).join("");
+    showroomCache=Array.isArray(data)?data:[];
+    applyShowroomFilters();
   }catch(e){
     console.error(e);
-    el.innerHTML='<div class="showroom-empty">Couldn\'t load Showroom — try again later.</div>';
+    el.innerHTML='<div class="showroom-empty">Couldn\'t load Showroom — make sure the database function is set up.</div>';
   }
+}
+function applyShowroomFilters(){
+  const make=(document.getElementById("filterMake")?.value||"").trim().toLowerCase();
+  const model=(document.getElementById("filterModel")?.value||"").trim().toLowerCase();
+  const yearMin=parseInt(document.getElementById("filterYearMin")?.value)||0;
+  const yearMax=parseInt(document.getElementById("filterYearMax")?.value)||9999;
+  const filtered=showroomCache.filter(r=>{
+    const y=parseInt(r.year)||0;
+    if(make&&!(r.make||"").toLowerCase().includes(make))return false;
+    if(model&&!(r.model||"").toLowerCase().includes(model))return false;
+    if(yearMin&&y&&y<yearMin)return false;
+    if(yearMax<9999&&y&&y>yearMax)return false;
+    return true;
+  });
+  const el=document.getElementById("showroomList");
+  if(!filtered.length){
+    el.innerHTML=showroomCache.length?'<div class="showroom-empty">No builds match your filters.</div>':'<div class="showroom-empty">No builds shared yet — be the first!</div>';
+    return;
+  }
+  el.innerHTML=filtered.map(r=>`
+    <div class="showroom-card glass">
+      <div class="showroom-info">
+        <h3>${esc(r.car_name||"Unknown Build")}</h3>
+        <p class="showroom-sub">${esc([r.year,r.make,r.model].filter(Boolean).join(" "))}</p>
+        ${r.note?`<p class="showroom-note">${esc(r.note)}</p>`:""}
+        <div class="showroom-stats">
+          <span>${money(r.total_spend||0)}</span>
+          <span>${r.mod_count||0} mod${r.mod_count!==1?"s":""}</span>
+        </div>
+      </div>
+    </div>`).join("");
+}
+function clearShowroomFilters(){
+  ["filterMake","filterModel","filterYearMin","filterYearMax"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  applyShowroomFilters();
 }
 function todayISO(){
   const d = new Date();
