@@ -261,7 +261,7 @@ input[type=range]{accent-color:var(--accent)}
 
 .page.active{
   display:block;
-  animation:smoothTabIn .24s cubic-bezier(.2,.8,.2,1) forwards;
+  animation:smoothTabIn .6s cubic-bezier(.2,.8,.2,1) forwards;
 }
 
 .page.leaving{
@@ -271,7 +271,7 @@ input[type=range]{accent-color:var(--accent)}
   right:0;
   top:0;
   pointer-events:none;
-  animation:smoothTabOut .18s cubic-bezier(.2,.8,.2,1) forwards;
+  animation:smoothTabOut .42s cubic-bezier(.2,.8,.2,1) forwards;
 }
 
 #carApp{
@@ -302,6 +302,11 @@ input[type=range]{accent-color:var(--accent)}
     transform:translateY(-5px) scale(.985);
     filter:blur(2px);
   }
+}
+
+@keyframes cardSlideIn{
+  from{opacity:0;transform:translateY(14px)}
+  to{opacity:1;transform:translateY(0)}
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -1222,10 +1227,18 @@ function showPage(id,btn){
   if(current){
     current.classList.remove("active");
     current.classList.add("leaving");
-    setTimeout(()=>current.classList.remove("leaving"),190);
+    setTimeout(()=>current.classList.remove("leaving"),430);
   }
 
   next.classList.add("active");
+
+  if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+    next.querySelectorAll(".mod-wrap, .service-row").forEach((el,i)=>{
+      el.style.animation="none";
+      void el.offsetWidth;
+      el.style.animation=`cardSlideIn .22s cubic-bezier(.2,.8,.2,1) ${i*55}ms both`;
+    });
+  }
 
   document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
   if(btn) btn.classList.add("active");
