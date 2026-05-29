@@ -145,7 +145,7 @@ label input,label select,label textarea{margin-top:6px}
 .home-top{text-align:left;margin-bottom:8px}
 .home-top .small{color:var(--muted);font-size:.86rem;margin-bottom:4px}
 .home-top h1{margin:0;font-size:2.05rem;font-weight:620;letter-spacing:-.045em}
-.home-car-img{width:100%;height:255px;object-fit:contain;margin:10px auto 6px;cursor:pointer;display:block}
+.home-car-img{width:100%;height:255px;object-fit:cover;margin:10px auto 6px;cursor:pointer;display:block;border-radius:14px}
 .home-model{color:var(--accent);font-size:.95rem;margin:4px 0 12px}
 .home-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
 .tag{border:1px solid var(--line);border-radius:12px;padding:7px 12px;background:rgba(255,255,255,.04)}
@@ -514,6 +514,16 @@ input[type=range]{accent-color:var(--accent)}
   }
 }
 
+/* Hero action sheet */
+.action-sheet{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;animation:fade .18s ease both}
+.action-sheet.hidden{display:none}
+.action-card{width:100%;padding:10px 12px max(20px,calc(env(safe-area-inset-bottom) + 10px));background:rgba(18,20,26,.95);backdrop-filter:blur(24px);border-radius:24px 24px 0 0;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:7px}
+.action-btn{width:100%;padding:15px 16px;border:0;border-radius:14px;background:rgba(255,255,255,.06);color:var(--fg);font-size:1rem;text-align:center;cursor:pointer;transition:background .15s}
+.action-btn:active{background:rgba(255,255,255,.13)}
+.action-btn.danger{color:#ff3b3b}
+.action-btn.cancel{background:transparent;color:var(--muted)}
+/* Hero adjust modal */
+.hero-adjust-preview{width:100%;height:190px;object-fit:cover;border-radius:16px;display:block;margin:4px 0 16px}
 </style>
 </head>
 <body>
@@ -550,6 +560,24 @@ input[type=range]{accent-color:var(--accent)}
   </div>
 </div>
 
+<div id="heroActionSheet" class="action-sheet hidden" onclick="closeHeroMenu()">
+  <div class="action-card" onclick="event.stopPropagation()">
+    <button class="action-btn" onclick="closeHeroMenu();pickHeroPhoto()">Change Photo</button>
+    <button class="action-btn" onclick="closeHeroMenu();openHeroAdjust()">Adjust Position</button>
+    <button class="action-btn danger" onclick="closeHeroMenu();removeHeroPhoto()">Remove Photo</button>
+    <button class="action-btn cancel" onclick="closeHeroMenu()">Cancel</button>
+  </div>
+</div>
+
+<div id="heroAdjustModal" class="modal hidden">
+  <div class="modal-card glass">
+    <div class="modal-head"><h2>Adjust Photo</h2><button class="btn primary" onclick="closeHeroAdjust()">Done</button></div>
+    <img id="heroAdjustPreview" class="hero-adjust-preview" alt="">
+    <label>Left / Right<input id="heroAdjustX" type="range" min="0" max="100" value="50" oninput="previewHeroAdjust()"></label>
+    <label style="margin-top:10px">Up / Down<input id="heroAdjustY" type="range" min="0" max="100" value="50" oninput="previewHeroAdjust()"></label>
+  </div>
+</div>
+
 <div class="app">
   <div id="garageHome">
     <div class="topbar"><div><h1>My Garage</h1><div class="status" id="cloudStatus">Local mode</div><div class="sync-pill" id="syncStatus">Sync idle</div></div><div class="button-row" style="margin:0"><button class="btn" onclick="forceCloudSave()">Save Now</button><button class="btn danger" onclick="signOut()">Log Out</button></div></div>
@@ -562,7 +590,7 @@ input[type=range]{accent-color:var(--accent)}
     <div id="homePage" class="page active">
       <section class="home-hero glass">
         <div class="home-top"><div class="small" id="homeUpdated">Car Log</div><h1 id="homeTitle">My Car</h1></div>
-        <img id="heroImg" class="home-car-img" alt="car" onclick="pickHeroPhoto()">
+        <img id="heroImg" class="home-car-img" alt="car" onclick="openHeroMenu()">
         <div class="home-model" id="carModelHero">Year Make Model</div>
         <div class="home-tags"><span class="tag" id="chassisTag">N/A</span><span class="tag" id="engineTag">N/A</span></div>
         <div class="total-card">
@@ -658,9 +686,9 @@ function money(v){const n=parseFloat(v);return isNaN(n)?"$0.00":n.toLocaleString
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function toast(msg){const old=document.querySelector(".toast");if(old)old.remove();const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),1300)}
 
-function blankCar(){return {id:uid(),name:"New Car",year:"",make:"",model:"",chassis:"N/A",engine:"N/A",purchaseDate:"",purchaseMileage:"",currentMileage:"",currentMileageDate:"",goals:"",accent:"#ff3b3b",backgroundImage:"",backgroundOpacity:".65",carImage:"",mods:[],services:[]}}
+function blankCar(){return {id:uid(),name:"New Car",year:"",make:"",model:"",chassis:"N/A",engine:"N/A",purchaseDate:"",purchaseMileage:"",currentMileage:"",currentMileageDate:"",goals:"",accent:"#ff3b3b",backgroundImage:"",backgroundOpacity:".65",carImage:"",carImageOffsetX:50,carImageOffsetY:50,mods:[],services:[]}}
 function splitVehicleText(text){const p=String(text||"").trim().split(/\s+/).filter(Boolean);const out={year:"",make:"",model:""};if(/^\d{4}$/.test(p[0]||""))out.year=p.shift();if(p.length){out.make=p.shift()||"";out.model=p.join(" ")}return out}
-function normalizeCar(c={}){const sp=splitVehicleText(c.carModel||"");return {id:c.id||uid(),name:c.name||c.carName||"New Car",year:c.year||c.carYear||sp.year||"",make:c.make||c.carMake||sp.make||"",model:c.model||c.carModelName||sp.model||"",chassis:c.chassis||c.chassisCode||"N/A",engine:c.engine||c.engineCode||"N/A",purchaseDate:c.purchaseDate||"",purchaseMileage:c.purchaseMileage||"",currentMileage:c.currentMileage||"",currentMileageDate:c.currentMileageDate||"",goals:c.goals||"",accent:c.accent||c.accentColor||"#ff3b3b",backgroundImage:c.backgroundImage||"",backgroundOpacity:c.backgroundOpacity||".65",carImage:c.carImage||"",mods:Array.isArray(c.mods)?c.mods.map(m=>({id:m.id||uid(),category:m.category||"Cosmetics",name:m.name||"New Item",brand:m.brand||"",status:m.status||"Planned",price:m.price||"",date:m.date||"",image:m.image||"",notes:m.notes||""})):[],services:Array.isArray(c.services)?c.services.map(s=>({id:s.id||uid(),name:s.name||"Service",date:s.date||"",mileage:s.mileage||"",intervalMiles:s.intervalMiles||"",intervalMonths:s.intervalMonths||"",cost:s.cost||"",notes:s.notes||""})):[]}}
+function normalizeCar(c={}){const sp=splitVehicleText(c.carModel||"");return {id:c.id||uid(),name:c.name||c.carName||"New Car",year:c.year||c.carYear||sp.year||"",make:c.make||c.carMake||sp.make||"",model:c.model||c.carModelName||sp.model||"",chassis:c.chassis||c.chassisCode||"N/A",engine:c.engine||c.engineCode||"N/A",purchaseDate:c.purchaseDate||"",purchaseMileage:c.purchaseMileage||"",currentMileage:c.currentMileage||"",currentMileageDate:c.currentMileageDate||"",goals:c.goals||"",accent:c.accent||c.accentColor||"#ff3b3b",backgroundImage:c.backgroundImage||"",backgroundOpacity:c.backgroundOpacity||".65",carImage:c.carImage||"",carImageOffsetX:c.carImageOffsetX??50,carImageOffsetY:c.carImageOffsetY??50,mods:Array.isArray(c.mods)?c.mods.map(m=>({id:m.id||uid(),category:m.category||"Cosmetics",name:m.name||"New Item",brand:m.brand||"",status:m.status||"Planned",price:m.price||"",date:m.date||"",image:m.image||"",notes:m.notes||""})):[],services:Array.isArray(c.services)?c.services.map(s=>({id:s.id||uid(),name:s.name||"Service",date:s.date||"",mileage:s.mileage||"",intervalMiles:s.intervalMiles||"",intervalMonths:s.intervalMonths||"",cost:s.cost||"",notes:s.notes||""})):[]}}
 function normalizeState(raw){if(!raw||typeof raw!=="object")return {cars:[],activeCarId:null};if(Array.isArray(raw.cars)){const cars=raw.cars.map(normalizeCar);return {cars,activeCarId:cars.some(c=>c.id===raw.activeCarId)?raw.activeCarId:null}}if(Array.isArray(raw.mods)||Array.isArray(raw.services)||raw.carName||raw.carModel)return {cars:[normalizeCar(raw)],activeCarId:null};return {cars:[],activeCarId:null}}
 function activeCar(){return state.cars.find(c=>c.id===state.activeCarId)||null}
 function saveLocal(){
@@ -931,7 +959,7 @@ function closeCarModal(){carModal.classList.add("hidden")}
 function saveCarFromModal(){let c=state.cars.find(x=>x.id===carModal.dataset.editId);if(!c){c=blankCar();state.cars.push(c)}c.name=modalName.value.trim()||"New Car";c.year=modalYear.value.trim();c.make=modalMake.value.trim();c.model=modalModel.value.trim();c.chassis=modalChassis.value.trim()||"N/A";c.engine=modalEngine.value.trim()||"N/A";c.purchaseDate=modalPurchaseDate.value;c.purchaseMileage=modalPurchaseMileage.value.trim();closeCarModal();state.activeCarId=c.id;save();showCarApp()}
 function deleteCar(id){const c=state.cars.find(x=>x.id===id);if(!c||!confirm("Delete "+(c.name||"this car")+"?"))return;if(user&&cloud){const paths=[c.carImage,c.backgroundImage,...(c.mods||[]).map(m=>m.image)].map(storagePathFromUrl).filter(Boolean);if(paths.length)cloud.storage.from(STORAGE_BUCKET).remove(paths).catch(e=>console.warn("Storage cleanup:",e));}state.cars=state.cars.filter(x=>x.id!==id);state.activeCarId=null;save();showGarage()}
 
-function renderHero(){const c=activeCar();if(!c)return;document.documentElement.style.setProperty("--accent",c.accent||"#ff3b3b");document.documentElement.style.setProperty("--bg-dim", String(1 - parseFloat(c.backgroundOpacity || ".65") * .55));document.documentElement.style.setProperty("--custom-bg",c.backgroundImage?`url("${c.backgroundImage}")`:DEFAULT_BG);homeTitle.textContent="My "+(c.name||"Car");homeUpdated.textContent="Last updated • "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});carModelHero.textContent=[c.year,c.make,c.model].filter(Boolean).join(" ")||"Year Make Model";chassisTag.textContent=c.chassis||"N/A";engineTag.textContent=c.engine||"N/A";heroImg.src=c.carImage||fallbackImg;activeCarLabel.textContent=c.name||"Car Log"}
+function renderHero(){const c=activeCar();if(!c)return;document.documentElement.style.setProperty("--accent",c.accent||"#ff3b3b");document.documentElement.style.setProperty("--bg-dim", String(1 - parseFloat(c.backgroundOpacity || ".65") * .55));document.documentElement.style.setProperty("--custom-bg",c.backgroundImage?`url("${c.backgroundImage}")`:DEFAULT_BG);homeTitle.textContent="My "+(c.name||"Car");homeUpdated.textContent="Last updated • "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});carModelHero.textContent=[c.year,c.make,c.model].filter(Boolean).join(" ")||"Year Make Model";chassisTag.textContent=c.chassis||"N/A";engineTag.textContent=c.engine||"N/A";heroImg.src=c.carImage||fallbackImg;heroImg.style.objectPosition=`${c.carImageOffsetX??50}% ${c.carImageOffsetY??50}%`;activeCarLabel.textContent=c.name||"Car Log"}
 function renderTotals(){
   const c=activeCar();
   if(!c)return;
@@ -1322,9 +1350,30 @@ function pickFile(cb, options={}){
   };
   i.click();
 }
+function openHeroMenu(){const c=activeCar();if(!c)return;heroActionSheet.classList.remove("hidden");}
+function closeHeroMenu(){heroActionSheet.classList.add("hidden");}
+function removeHeroPhoto(){const c=activeCar();if(!c)return;safeDeleteFromStorage(c.carImage);c.carImage="";save();renderHero();renderGarage();}
+function openHeroAdjust(){
+  const c=activeCar();
+  if(!c||!c.carImage){toast("Add a hero photo first.");return;}
+  heroAdjustPreview.src=c.carImage;
+  heroAdjustPreview.style.objectPosition=`${c.carImageOffsetX??50}% ${c.carImageOffsetY??50}%`;
+  heroAdjustX.value=c.carImageOffsetX??50;
+  heroAdjustY.value=c.carImageOffsetY??50;
+  heroAdjustModal.classList.remove("hidden");
+}
+function closeHeroAdjust(){
+  heroAdjustModal.classList.add("hidden");
+  const c=activeCar();if(!c)return;
+  c.carImageOffsetX=parseInt(heroAdjustX.value);
+  c.carImageOffsetY=parseInt(heroAdjustY.value);
+  save();renderHero();
+}
+function previewHeroAdjust(){heroAdjustPreview.style.objectPosition=`${heroAdjustX.value}% ${heroAdjustY.value}%`;}
+
 function pickHeroPhoto(){
   const c=activeCar();if(!c)return;
-  pickWithStorage(()=>`${user.id}/${c.id}/hero`,{maxSide:1000,quality:.78,preserveTransparency:true},src=>{
+  pickWithStorage(()=>`${user.id}/${c.id}/hero`,{maxSide:1400,quality:.88,preserveTransparency:true},src=>{
     c.carImage=src;save();renderHero();renderGarage();
   });
 }
