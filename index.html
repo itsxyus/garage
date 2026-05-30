@@ -708,6 +708,7 @@ input[type=range]{accent-color:var(--accent)}
       <button class="btn primary" onclick="signIn()">Log In</button>
       <button class="btn" onclick="signUp()">Sign Up</button>
       <button class="btn guest" onclick="guestMode()">Continue as Guest</button>
+      <button class="btn guest" onclick="browseShowroom()" style="margin-top:2px">Browse Showroom ✦</button>
       <button class="btn guest" onclick="forgotPassword()" style="margin-top:2px">Forgot Password?</button>
     </div>
     <p id="authStatus" class="status">Cloud sync ready.</p>
@@ -720,8 +721,8 @@ input[type=range]{accent-color:var(--accent)}
     <div class="form-grid">
       <label>Car Name<input id="modalName" placeholder="Car name"></label>
       <label>Year<select id="modalYear"><option value="">Year</option></select></label>
-      <label>Make<input id="modalMake" list="make-datalist" placeholder="Make" oninput="onMakeInput(this.value)"></label>
-      <label>Model<input id="modalModel" list="model-datalist" placeholder="Model"></label>
+      <label>Make<select id="modalMake" onchange="onMakeChange('modal')"><option value="">Make</option></select><input id="modalMakeOther" placeholder="Type make name" style="display:none;margin-top:5px"></label>
+      <label>Model<select id="modalModel" onchange="onModelChange('modal')"><option value="">Model</option></select><input id="modalModelOther" placeholder="Type model name" style="display:none;margin-top:5px"></label>
       <label>Chassis Code<input id="modalChassis" placeholder="Chassis code"></label>
       <label>Engine<input id="modalEngine" placeholder="Engine"></label>
       <label>Purchase Date<input id="modalPurchaseDate" type="date"></label>
@@ -787,6 +788,9 @@ input[type=range]{accent-color:var(--accent)}
     <div class="garage-grid" id="garageList"></div>
     <div id="showroomSection" class="hidden">
       <div class="showroom-filters glass">
+        <div style="margin-bottom:6px">
+          <input type="text" id="filterUsername" placeholder="Search by username..." oninput="applyShowroomFilters()">
+        </div>
         <div class="showroom-filter-row">
           <input type="text" id="filterMake" list="make-datalist" placeholder="Make" oninput="onMakeInput(this.value);applyShowroomFilters()">
           <input type="text" id="filterModel" list="model-datalist" placeholder="Model" oninput="applyShowroomFilters()">
@@ -856,8 +860,8 @@ input[type=range]{accent-color:var(--accent)}
         <div class="form-grid">
           <label>Car Name<input id="setName" placeholder="Car name"></label>
           <label>Year<select id="setYear"><option value="">Year</option></select></label>
-          <label>Make<input id="setMake" list="make-datalist" placeholder="Make" oninput="onMakeInput(this.value)"></label>
-          <label>Model<input id="setModel" list="model-datalist" placeholder="Model"></label>
+          <label>Make<select id="setMake" onchange="onMakeChange('set')"><option value="">Make</option></select><input id="setMakeOther" placeholder="Type make name" style="display:none;margin-top:5px"></label>
+          <label>Model<select id="setModel" onchange="onModelChange('set')"><option value="">Model</option></select><input id="setModelOther" placeholder="Type model name" style="display:none;margin-top:5px"></label>
           <label>Chassis Code<input id="setChassis" placeholder="Chassis code"></label>
           <label>Engine<input id="setEngine" placeholder="Engine"></label>
           <label>Purchase Date<input id="setPurchaseDate" type="date"></label>
@@ -967,12 +971,16 @@ const fallbackImg="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' 
 let state={cars:[],activeCarId:null},cloud=null,user=null,cloudTimer=null,guest=false,sortPrefs={},cloudSaving=false,cloudSavePending=false,lastCloudSaveAt=null;
 
 function initCarInputs(){
-  // Populate year selects
   const cur=new Date().getFullYear();
   let yHTML='<option value="">Year</option>';
   for(let y=cur+1;y>=1970;y--)yHTML+='<option value="'+y+'">'+y+'</option>';
   ["modalYear","setYear"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=yHTML;});
-  // Populate make datalist
+  // Populate make selects
+  const makeOptHTML='<option value="">Make</option>'
+    +Object.keys(CAR_MAKES_MODELS).sort().map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join("")
+    +'<option value="__other__">Other...</option>';
+  ["modalMake","setMake"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=makeOptHTML;});
+  // Keep datalist for showroom filter suggestions
   const mdl=document.getElementById("make-datalist");
   if(mdl)mdl.innerHTML=Object.keys(CAR_MAKES_MODELS).sort().map(m=>'<option value="'+esc(m)+'">').join("");
 }
@@ -980,6 +988,62 @@ function onMakeInput(val){
   const models=CAR_MAKES_MODELS[val]||[];
   const dl=document.getElementById("model-datalist");
   if(dl)dl.innerHTML=models.map(m=>'<option value="'+esc(m)+'">').join("");
+}
+function onMakeChange(prefix){
+  const makeSel=document.getElementById(prefix+"Make");
+  const makeOther=document.getElementById(prefix+"MakeOther");
+  const modelSel=document.getElementById(prefix+"Model");
+  const modelOther=document.getElementById(prefix+"ModelOther");
+  const make=makeSel.value;
+  makeOther.style.display=make==="__other__"?"block":"none";
+  if(make==="__other__")makeOther.focus();
+  if(modelOther)modelOther.style.display="none";
+  const models=CAR_MAKES_MODELS[make]||[];
+  if(!make||make==="__other__"){
+    modelSel.innerHTML='<option value="">Model</option>';
+  }else{
+    modelSel.innerHTML='<option value="">Model</option>'
+      +models.map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join("")
+      +'<option value="__other__">Other...</option>';
+  }
+}
+function onModelChange(prefix){
+  const sel=document.getElementById(prefix+"Model");
+  const other=document.getElementById(prefix+"ModelOther");
+  if(!other)return;
+  other.style.display=sel.value==="__other__"?"block":"none";
+  if(sel.value==="__other__")other.focus();
+}
+function getMakeVal(prefix){
+  const sel=document.getElementById(prefix+"Make");
+  if(!sel)return"";
+  if(sel.value==="__other__")return(document.getElementById(prefix+"MakeOther")?.value||"").trim();
+  return sel.value;
+}
+function getModelVal(prefix){
+  const sel=document.getElementById(prefix+"Model");
+  if(!sel)return"";
+  if(sel.value==="__other__")return(document.getElementById(prefix+"ModelOther")?.value||"").trim();
+  return sel.value;
+}
+function setMakeModel(prefix,make,model){
+  const makeSel=document.getElementById(prefix+"Make");
+  const makeOther=document.getElementById(prefix+"MakeOther");
+  const modelSel=document.getElementById(prefix+"Model");
+  const modelOther=document.getElementById(prefix+"ModelOther");
+  const knownMake=!!CAR_MAKES_MODELS[make];
+  if(knownMake){makeSel.value=make;makeOther.style.display="none";}
+  else if(make){makeSel.value="__other__";makeOther.value=make;makeOther.style.display="block";}
+  else{makeSel.value="";makeOther.style.display="none";}
+  const models=CAR_MAKES_MODELS[make]||[];
+  modelSel.innerHTML='<option value="">Model</option>'
+    +models.map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join("")
+    +(models.length?'<option value="__other__">Other...</option>':"");
+  if(models.includes(model)){modelSel.value=model;modelOther.style.display="none";}
+  else if(model){
+    if(!models.length)modelSel.innerHTML='<option value="__other__">Other...</option>';
+    modelSel.value="__other__";modelOther.value=model;modelOther.style.display="block";
+  }else{modelSel.value="";modelOther.style.display="none";}
 }
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
 function money(v){const n=parseFloat(v);return isNaN(n)?"$0.00":n.toLocaleString(undefined,{style:"currency",currency:"USD"})}
@@ -1117,6 +1181,7 @@ async function signIn(){const email=authEmail.value.trim(),password=authPassword
 async function forgotPassword(){const email=prompt("Enter your account email:");if(!email)return;const{error}=await cloud.auth.resetPasswordForEmail(email,{redirectTo:location.href});if(error)return alert(error.message);alert("Reset email sent — check your inbox (and spam).");}
 async function updatePassword(){const p=document.getElementById("newPasswordInput").value;if(!p||p.length<6)return alert("Password must be at least 6 characters.");const{error}=await cloud.auth.updateUser({password:p});if(error)return alert(error.message);document.getElementById("resetPasswordModal").classList.add("hidden");document.getElementById("newPasswordInput").value="";toast("Password updated!");}
 function guestMode(){guest=true;hideAuth();setStatus("Guest mode • saved on this device");render()}
+function browseShowroom(){guest=true;hideAuth();setStatus("Guest mode • saved on this device");render();setTimeout(()=>switchGarageView("showroom"),80);}
 async function signOut(){
   guest=false;
   try{
@@ -1264,9 +1329,9 @@ function showGarage(){state.activeCarId=null;saveLocal();carApp.classList.add("h
 function showCarApp(){garageHome.classList.add("hidden");carApp.classList.remove("hidden");tabs.classList.remove("hidden");renderHero();renderMods();renderServices();renderTotals();renderTimeline();renderSettings()}
 function openCar(id){state.activeCarId=id;saveLocal();showCarApp();showPage("homePage",document.querySelector("[data-tab=home]"));scheduleCloudSave()}
 function renderGarage(){garageList.innerHTML=state.cars.map(c=>`<div class="car-wrap" data-id="${c.id}"><div class="delete-bg" onclick="deleteCar('${c.id}')">Delete</div><button class="car-card glass" onclick="openCar('${c.id}')"><img src="${esc(c.carImage||fallbackImg)}" style="object-position:${c.carImageOffsetX??50}% ${c.carImageOffsetY??50}%" onerror="this.src=fallbackImg"><h2>${esc(c.name)}</h2><p>${esc([c.year,c.make,c.model].filter(Boolean).join(" ")||"No vehicle info yet")}</p></button></div>`).join("")+`<div class="add-card glass" onclick="openCarModal()"><div><b>＋ Add Your Car</b><span>${state.cars.length?"Add Another":"Start your garage"}</span></div></div>`;initSwipe(".car-wrap",".car-card")}
-function openCarModal(c=null){modalTitle.textContent=c?"Edit Car":"Add Your Car";carModal.dataset.editId=c?.id||"";modalName.value=c?.name||"";modalYear.value=c?.year||"";modalMake.value=c?.make||"";onMakeInput(c?.make||"");modalModel.value=c?.model||"";modalChassis.value=c?.chassis||"";modalEngine.value=c?.engine||"";modalPurchaseDate.value=c?.purchaseDate||"";modalPurchaseMileage.value=c?.purchaseMileage||"";carModal.classList.remove("hidden")}
+function openCarModal(c=null){modalTitle.textContent=c?"Edit Car":"Add Your Car";carModal.dataset.editId=c?.id||"";modalName.value=c?.name||"";modalYear.value=c?.year||"";setMakeModel("modal",c?.make||"",c?.model||"");modalChassis.value=c?.chassis||"";modalEngine.value=c?.engine||"";modalPurchaseDate.value=c?.purchaseDate||"";modalPurchaseMileage.value=c?.purchaseMileage||"";carModal.classList.remove("hidden")}
 function closeCarModal(){carModal.classList.add("hidden")}
-function saveCarFromModal(){let c=state.cars.find(x=>x.id===carModal.dataset.editId);if(!c){c=blankCar();state.cars.push(c)}c.name=modalName.value.trim()||"New Car";c.year=modalYear.value.trim();c.make=modalMake.value.trim();c.model=modalModel.value.trim();c.chassis=modalChassis.value.trim()||"N/A";c.engine=modalEngine.value.trim()||"N/A";c.purchaseDate=modalPurchaseDate.value;c.purchaseMileage=modalPurchaseMileage.value.trim();closeCarModal();state.activeCarId=c.id;save();showCarApp()}
+function saveCarFromModal(){let c=state.cars.find(x=>x.id===carModal.dataset.editId);if(!c){c=blankCar();state.cars.push(c)}c.name=modalName.value.trim()||"New Car";c.year=modalYear.value.trim();c.make=getMakeVal("modal");c.model=getModelVal("modal");c.chassis=modalChassis.value.trim()||"N/A";c.engine=modalEngine.value.trim()||"N/A";c.purchaseDate=modalPurchaseDate.value;c.purchaseMileage=modalPurchaseMileage.value.trim();closeCarModal();state.activeCarId=c.id;save();showCarApp()}
 function deleteCar(id){const c=state.cars.find(x=>x.id===id);if(!c||!confirm("Delete "+(c.name||"this car")+"?"))return;if(user&&cloud){const paths=[c.carImage,c.backgroundImage,...(c.mods||[]).map(m=>m.image)].map(storagePathFromUrl).filter(Boolean);if(paths.length)cloud.storage.from(STORAGE_BUCKET).remove(paths).catch(e=>console.warn("Storage cleanup:",e));}state.cars=state.cars.filter(x=>x.id!==id);state.activeCarId=null;save();showGarage()}
 
 function renderHero(){const c=activeCar();if(!c)return;document.documentElement.style.setProperty("--accent",c.accent||"#ff3b3b");document.documentElement.style.setProperty("--bg-dim", String(1 - parseFloat(c.backgroundOpacity || ".65") * .55));document.documentElement.style.setProperty("--custom-bg",c.backgroundImage?`url("${c.backgroundImage}")`:DEFAULT_BG);homeTitle.textContent="My "+(c.name||"Car");homeUpdated.textContent="Last updated • "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});carModelHero.textContent=[c.year,c.make,c.model].filter(Boolean).join(" ")||"Year Make Model";chassisTag.textContent=c.chassis||"N/A";engineTag.textContent=c.engine||"N/A";heroImg.src=c.carImage||fallbackImg;heroImg.style.objectPosition=`${c.carImageOffsetX??50}% ${c.carImageOffsetY??50}%`;activeCarLabel.textContent=c.name||"Car Log"}
@@ -1526,8 +1591,8 @@ function setService(id,k,v){
   }
 }
 
-function renderSettings(){const c=activeCar();if(!c)return;setName.value=c.name;setYear.value=c.year;setMake.value=c.make;onMakeInput(c.make);setModel.value=c.model;setChassis.value=c.chassis;setEngine.value=c.engine;setPurchaseDate.value=c.purchaseDate;setPurchaseMileage.value=c.purchaseMileage;setAccent.value=c.accent;setBgOpacity.value=c.backgroundOpacity;setGoals.value=c.goals;setShowroomNote.value=c.showroomNote||"";setIsPublic.checked=!!c.isPublic}
-function saveCarInfo(){const c=activeCar();if(!c)return;c.name=setName.value.trim()||"New Car";c.year=setYear.value.trim();c.make=setMake.value.trim();c.model=setModel.value.trim();c.chassis=setChassis.value.trim()||"N/A";c.engine=setEngine.value.trim()||"N/A";c.purchaseDate=setPurchaseDate.value;c.purchaseMileage=setPurchaseMileage.value.trim();c.accent=setAccent.value;c.backgroundOpacity=setBgOpacity.value;c.goals=setGoals.value;c.showroomNote=setShowroomNote.value;c.isPublic=setIsPublic.checked;save();renderHero();renderGarage();renderTimeline();renderSettings();}
+function renderSettings(){const c=activeCar();if(!c)return;setName.value=c.name;setYear.value=c.year;setMakeModel("set",c.make,c.model);setChassis.value=c.chassis;setEngine.value=c.engine;setPurchaseDate.value=c.purchaseDate;setPurchaseMileage.value=c.purchaseMileage;setAccent.value=c.accent;setBgOpacity.value=c.backgroundOpacity;setGoals.value=c.goals;setShowroomNote.value=c.showroomNote||"";setIsPublic.checked=!!c.isPublic}
+function saveCarInfo(){const c=activeCar();if(!c)return;c.name=setName.value.trim()||"New Car";c.year=setYear.value.trim();c.make=getMakeVal("set");c.model=getModelVal("set");c.chassis=setChassis.value.trim()||"N/A";c.engine=setEngine.value.trim()||"N/A";c.purchaseDate=setPurchaseDate.value;c.purchaseMileage=setPurchaseMileage.value.trim();c.accent=setAccent.value;c.backgroundOpacity=setBgOpacity.value;c.goals=setGoals.value;c.showroomNote=setShowroomNote.value;c.isPublic=setIsPublic.checked;save();renderHero();renderGarage();renderTimeline();renderSettings();}
 async function saveWithFeedback(){
   saveCarInfo();
   if(!user){toast("Saved locally — sign in to sync to cloud");return;}
@@ -1612,12 +1677,14 @@ async function renderShowroom(){
   applyShowroomFilters();
 }
 function applyShowroomFilters(){
+  const username=(document.getElementById("filterUsername")?.value||"").trim().toLowerCase();
   const make=(document.getElementById("filterMake")?.value||"").trim().toLowerCase();
   const model=(document.getElementById("filterModel")?.value||"").trim().toLowerCase();
   const yearMin=parseInt(document.getElementById("filterYearMin")?.value)||0;
   const yearMax=parseInt(document.getElementById("filterYearMax")?.value)||9999;
   const filtered=showroomCache.filter(r=>{
     const y=parseInt(r.year)||0;
+    if(username&&!(r.username||"").toLowerCase().includes(username))return false;
     if(make&&!(r.make||"").toLowerCase().includes(make))return false;
     if(model&&!(r.model||"").toLowerCase().includes(model))return false;
     if(yearMin&&y&&y<yearMin)return false;
@@ -1651,7 +1718,7 @@ function applyShowroomFilters(){
   });
 }
 function clearShowroomFilters(){
-  ["filterMake","filterModel","filterYearMin","filterYearMax"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  ["filterUsername","filterMake","filterModel","filterYearMin","filterYearMax"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
   applyShowroomFilters();
 }
 async function openPublicProfile(carId){
@@ -1830,10 +1897,17 @@ window.addEventListener("popstate",e=>{
     closePublicProfile();
   }
 });
-// Open profile directly if page loaded with ?profile= param
+// Open profile/user directly from URL params
 (()=>{
-  const pid=new URLSearchParams(window.location.search).get("profile");
+  const params=new URLSearchParams(window.location.search);
+  const pid=params.get("profile");
+  const uname=params.get("user");
   if(pid) window.addEventListener("appReady",()=>openPublicProfile(pid),{once:true});
+  if(uname) window.addEventListener("appReady",()=>{
+    switchGarageView("showroom");
+    const el=document.getElementById("filterUsername");
+    if(el){el.value=uname;applyShowroomFilters();}
+  },{once:true});
 })();
 function todayISO(){
   const d = new Date();
