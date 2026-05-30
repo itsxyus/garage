@@ -1674,6 +1674,7 @@ async function renderShowroom(){
   const own=localPublicCars();
   const ownIds=new Set(own.map(c=>c._car_id));
   if(!cloud){showroomCache=own;applyShowroomFilters();return;}
+  let rpcFailed=false;
   try{
     const{data,error}=await cloud.rpc("get_showroom_cars");
     if(error)throw error;
@@ -1681,7 +1682,15 @@ async function renderShowroom(){
     showroomCache=[...own,...remote];
   }catch(e){
     console.warn("Showroom RPC unavailable:",e.message||e);
-    showroomCache=own; // fall back to local-only
+    showroomCache=own;
+    rpcFailed=true;
+  }
+  if(rpcFailed&&showroomCache.length===0){
+    el.innerHTML='<div class="showroom-empty" style="padding:24px 16px;text-align:center">'
+      +'<p style="margin:0 0 12px;color:var(--muted)">Showroom couldn\'t load right now.</p>'
+      +'<button class="btn" onclick="renderShowroom()">Retry</button>'
+      +'</div>';
+    return;
   }
   applyShowroomFilters();
 }
@@ -1744,6 +1753,12 @@ async function openPublicProfile(carId){
   const own=(state.cars||[]).find(c=>c.id===carId);
   if(own){renderPublicProfile(Object.assign({},own,{username:state.username||"",instagram:state.instagram||"",tiktok:state.tiktok||"",youtube:state.youtube||""}),true);return;}
   // Other user's car — fetch via RPC
+  if(!cloud){
+    const cached=showroomCache.find(r=>r._car_id===carId);
+    if(cached)renderPublicProfile(Object.assign({mods:[],services:[]},cached),false);
+    else document.getElementById("profileMods").innerHTML='<section class="section glass"><div style="text-align:center;padding:20px;color:var(--muted)">Build not found.</div></section>';
+    return;
+  }
   try{
     const{data,error}=await cloud.rpc("get_public_car",{p_car_id:carId});
     if(error)throw error;
@@ -1751,7 +1766,9 @@ async function openPublicProfile(carId){
     renderPublicProfile(data,false);
   }catch(e){
     console.error(e);
-    document.getElementById("profileMods").innerHTML='<section class="section glass"><div style="text-align:center;padding:20px;color:var(--muted)">Couldn\'t load this build — run the get_public_car SQL function.</div></section>';
+    const cached=showroomCache.find(r=>r._car_id===carId);
+    if(cached)renderPublicProfile(Object.assign({mods:[],services:[]},cached),false);
+    else document.getElementById("profileMods").innerHTML='<section class="section glass"><div style="text-align:center;padding:20px;color:var(--muted)">Couldn\'t load this build right now. Try again later.</div></section>';
   }
 }
 function renderPublicProfile(d,isOwn){
