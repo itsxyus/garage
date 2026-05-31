@@ -644,6 +644,11 @@ input[type=range]{accent-color:var(--accent)}
   .home-model{font-size:.88rem}
   /* trim side padding; add bottom clearance for tabs bar */
   .app{padding-left:14px;padding-right:14px;padding-bottom:88px}
+  /* public profile — counteract 14.5px font-size so it feels as roomy as mobile */
+  .profile-hero{max-height:300px;margin:10px auto 20px}
+  #publicProfile h1{font-size:2rem}
+  #publicProfile p{font-size:1rem}
+  #publicProfile .section{padding:22px 18px}
   /* constrain auth overlay to phone screen so it doesn't overflow the bezel */
   .auth-overlay{
     top:50%;left:50%;right:auto;bottom:auto;
@@ -680,8 +685,8 @@ input[type=range]{accent-color:var(--accent)}
 .showroom-toggle-row input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent);flex-shrink:0}
 .showroom-toggle-row span{font-size:.9rem;color:var(--text);line-height:1.35}
 /* Public profile */
-.profile-hero{width:100%;max-height:240px;object-fit:contain;display:block;margin:0 auto 10px}
-.profile-note-block{font-size:.9rem;line-height:1.5;color:var(--muted);padding:10px 12px;background:rgba(255,255,255,.04);border-radius:12px;border:1px solid var(--line);margin:8px 0 0}
+.profile-hero{width:100%;max-height:270px;object-fit:contain;display:block;margin:8px auto 18px}
+.profile-note-block{font-size:.9rem;line-height:1.55;color:var(--muted);padding:12px 14px;background:rgba(255,255,255,.04);border-radius:12px;border:1px solid var(--line);margin:10px 0 0}
 .profile-cat-label{color:var(--text);font-size:1rem;font-weight:650;letter-spacing:-.02em;margin:20px 0 4px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.1)}
 .profile-mod-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:10px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.07)}
 .profile-mod-row:last-child{border-bottom:none}
@@ -889,12 +894,12 @@ input[type=range]{accent-color:var(--accent)}
       <span id="profileBadge" style="color:var(--muted);font-size:.85rem"></span>
     </div>
     <img id="profileHero" class="profile-hero" alt="" onerror="this.style.display='none'" style="display:none">
-    <section class="section glass" style="margin-top:0;padding:16px">
-      <h1 id="profileName" style="margin:0 0 4px;font-size:1.75rem;font-weight:650;letter-spacing:-.04em"></h1>
-      <p id="profileSub" style="margin:0 0 10px;color:var(--accent);font-size:.92rem"></p>
-      <div id="profileTags" class="home-tags" style="justify-content:flex-start;margin-bottom:10px"></div>
+    <section class="section glass" style="margin-top:0;padding:20px 18px">
+      <h1 id="profileName" style="margin:0 0 6px;font-size:1.85rem;font-weight:650;letter-spacing:-.04em"></h1>
+      <p id="profileSub" style="margin:0 0 12px;color:var(--accent);font-size:.95rem"></p>
+      <div id="profileTags" class="home-tags" style="justify-content:flex-start;margin-bottom:12px"></div>
       <div id="profileNote" class="profile-note-block" style="display:none"></div>
-      <div id="profileSpend" class="total-card" style="margin-top:12px"></div>
+      <div id="profileSpend" class="total-card" style="margin-top:14px"></div>
     </section>
     <div id="profileMods"></div>
   </div>
