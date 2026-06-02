@@ -1,0 +1,19 @@
+{
+  "name": "My Garage",
+  "short_name": "Garage",
+  "description": "Track your car mods and share your build",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#09090e",
+  "theme_color": "#09090e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

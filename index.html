@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#09090e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
 <title>My Garage</title>
 <style>
 :root{
@@ -644,6 +649,11 @@ input[type=range]{accent-color:var(--accent)}
   .home-model{font-size:.88rem}
   /* trim side padding; add bottom clearance for tabs bar */
   .app{padding-left:14px;padding-right:14px;padding-bottom:88px}
+  /* public profile — counteract 14.5px font-size so it feels as roomy as mobile */
+  .profile-hero{max-height:300px;margin:10px auto 20px}
+  #publicProfile h1{font-size:2rem}
+  #publicProfile p{font-size:1rem}
+  #publicProfile .section{padding:22px 18px}
   /* constrain auth overlay to phone screen so it doesn't overflow the bezel */
   .auth-overlay{
     top:50%;left:50%;right:auto;bottom:auto;
@@ -689,8 +699,8 @@ input[type=range]{accent-color:var(--accent)}
 .showroom-toggle-row input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent);flex-shrink:0}
 .showroom-toggle-row span{font-size:.9rem;color:var(--text);line-height:1.35}
 /* Public profile */
-.profile-hero{width:100%;max-height:240px;object-fit:contain;display:block;margin:0 auto 10px}
-.profile-note-block{font-size:.9rem;line-height:1.5;color:var(--muted);padding:10px 12px;background:rgba(255,255,255,.04);border-radius:12px;border:1px solid var(--line);margin:8px 0 0}
+.profile-hero{width:100%;max-height:270px;object-fit:contain;display:block;margin:8px auto 18px}
+.profile-note-block{font-size:.9rem;line-height:1.55;color:var(--muted);padding:12px 14px;background:rgba(255,255,255,.04);border-radius:12px;border:1px solid var(--line);margin:10px 0 0}
 .profile-cat-label{color:var(--text);font-size:1rem;font-weight:650;letter-spacing:-.02em;margin:20px 0 4px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.1)}
 .profile-mod-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:10px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.07)}
 .profile-mod-row:last-child{border-bottom:none}
@@ -703,9 +713,37 @@ input[type=range]{accent-color:var(--accent)}
 .social-link:hover{background:rgba(255,255,255,.09)}
 .showroom-card{cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}
 .showroom-card:active{transform:scale(.97)}
+/* Splash */
+#splash{position:fixed;inset:0;background:#09090e;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:opacity .5s ease}
+#splash.out{opacity:0;pointer-events:none}
+.splash-g{font-size:6rem;font-weight:800;letter-spacing:-.06em;color:#ff3b3b;line-height:1;animation:splashUp .6s ease both}
+.splash-word{font-size:1rem;font-weight:500;letter-spacing:.4em;text-transform:uppercase;color:rgba(255,255,255,.3);animation:splashUp .6s .25s ease both;margin-top:6px}
+.splash-bar{width:0;height:2px;background:#ff3b3b;border-radius:2px;animation:splashBar 1s .45s ease forwards;margin-top:18px}
+.splash-skip{position:absolute;bottom:44px;font-size:.75rem;color:rgba(255,255,255,.18);letter-spacing:.05em;animation:splashUp .5s .9s ease both}
+@keyframes splashUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes splashBar{to{width:64px}}
+/* Profile actions (like / share) */
+.profile-actions{display:flex;gap:8px;margin:10px 0 4px}
+.like-btn.liked{color:var(--accent);border-color:var(--accent)}
+/* Comments */
+.comment-row{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.comment-row:last-child{border-bottom:none}
+.comment-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.comment-user{font-weight:600;font-size:.85rem}
+.comment-time{font-size:.75rem;color:var(--muted)}
+.comment-body{font-size:.9rem;line-height:1.45;color:var(--text)}
+.comment-del{background:none;border:none;color:var(--muted);font-size:.75rem;cursor:pointer;padding:0}
+.comment-del:hover{color:var(--bad)}
+.community-badge{display:inline-block;font-size:.7rem;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--muted);margin-bottom:4px}
 </style>
 </head>
 <body>
+<div id="splash" onclick="dismissSplash()">
+  <div class="splash-g">G</div>
+  <div class="splash-word">Garage</div>
+  <div class="splash-bar"></div>
+  <div class="splash-skip">tap to skip</div>
+</div>
 <div id="fatalErrorBox" class="hidden" style="position:fixed;left:10px;right:10px;top:10px;z-index:9999;background:#2a1010;color:white;border:1px solid #ff5b63;border-radius:12px;padding:12px;font-family:system-ui"></div>
 <div id="authOverlay" class="auth-overlay hidden">
   <div class="auth-card glass">
@@ -811,6 +849,15 @@ input[type=range]{accent-color:var(--accent)}
           <input type="number" id="filterYearMax" placeholder="To" inputmode="numeric" min="1900" max="2030" oninput="applyShowroomFilters()">
           <button class="btn" onclick="clearShowroomFilters()" style="padding:8px 12px;font-size:.8rem">Clear</button>
         </div>
+        <select id="filterCommunity" onchange="applyShowroomFilters()" style="width:100%">
+          <option value="">All Communities</option>
+          <option value="jdm">JDM</option>
+          <option value="muscle">American Muscle</option>
+          <option value="euro">Euro</option>
+          <option value="truck">Trucks &amp; Off-road</option>
+          <option value="classic">Classic / Vintage</option>
+          <option value="electric">Electric / Hybrid</option>
+        </select>
       </div>
       <div class="showroom-grid" id="showroomList"></div>
     </div>
@@ -879,6 +926,17 @@ input[type=range]{accent-color:var(--accent)}
           <label class="span2">Background Opacity<input id="setBgOpacity" type="range" min=".25" max="1" step=".01" oninput="activeCar().backgroundOpacity=this.value;save();renderHero()"></label>
           <label class="full">Goals<textarea id="setGoals" placeholder="Goals / notes"></textarea></label>
           <label class="full">Showroom Note<textarea id="setShowroomNote" placeholder="Leave empty to use Goals as your Showroom description"></textarea></label>
+          <label class="full">Community
+            <select id="setCommunity" onchange="activeCar().community=this.value;save()">
+              <option value="">General</option>
+              <option value="jdm">JDM</option>
+              <option value="muscle">American Muscle</option>
+              <option value="euro">Euro</option>
+              <option value="truck">Trucks &amp; Off-road</option>
+              <option value="classic">Classic / Vintage</option>
+              <option value="electric">Electric / Hybrid</option>
+            </select>
+          </label>
         </div>
         <div class="showroom-toggle-row">
           <input type="checkbox" id="setIsPublic" onclick="handleShowroomToggle()">
@@ -902,14 +960,27 @@ input[type=range]{accent-color:var(--accent)}
       <span id="profileBadge" style="color:var(--muted);font-size:.85rem"></span>
     </div>
     <img id="profileHero" class="profile-hero" alt="" onerror="this.style.display='none'" style="display:none">
-    <section class="section glass" style="margin-top:0;padding:16px">
-      <h1 id="profileName" style="margin:0 0 4px;font-size:1.75rem;font-weight:650;letter-spacing:-.04em"></h1>
-      <p id="profileSub" style="margin:0 0 10px;color:var(--accent);font-size:.92rem"></p>
-      <div id="profileTags" class="home-tags" style="justify-content:flex-start;margin-bottom:10px"></div>
+    <section class="section glass" style="margin-top:0;padding:20px 18px">
+      <h1 id="profileName" style="margin:0 0 6px;font-size:1.85rem;font-weight:650;letter-spacing:-.04em"></h1>
+      <p id="profileSub" style="margin:0 0 12px;color:var(--accent);font-size:.95rem"></p>
+      <div id="profileTags" class="home-tags" style="justify-content:flex-start;margin-bottom:12px"></div>
       <div id="profileNote" class="profile-note-block" style="display:none"></div>
-      <div id="profileSpend" class="total-card" style="margin-top:12px"></div>
+      <div id="profileSpend" class="total-card" style="margin-top:14px"></div>
     </section>
+    <div class="profile-actions">
+      <button class="btn like-btn" id="likeBtn" onclick="toggleProfileLike()">♡ <span id="likeCount">0</span></button>
+      <button class="btn" onclick="sharePublicProfile()">↗ Share</button>
+    </div>
     <div id="profileMods"></div>
+    <section class="section glass" id="commentsSection" style="margin-top:14px">
+      <div class="section-head"><h2>Comments</h2></div>
+      <div id="commentsList"></div>
+      <div id="commentForm" style="display:none;margin-top:12px">
+        <textarea id="commentText" placeholder="Add a comment…" style="width:100%;min-height:68px;resize:none"></textarea>
+        <button class="btn primary" onclick="submitComment()" style="margin-top:8px;width:100%">Post</button>
+      </div>
+      <p id="commentSignIn" style="display:none;text-align:center;color:var(--muted);font-size:.85rem;margin:10px 0 0">Sign in to leave a comment</p>
+    </section>
   </div>
 </div>
 <datalist id="make-datalist"></datalist>
@@ -1059,9 +1130,9 @@ function money(v){const n=parseFloat(v);return isNaN(n)?"$0.00":n.toLocaleString
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function toast(msg){const old=document.querySelector(".toast");if(old)old.remove();const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),1300)}
 
-function blankCar(){return {id:uid(),name:"New Car",year:"",make:"",model:"",chassis:"N/A",engine:"N/A",purchaseDate:"",purchaseMileage:"",currentMileage:"",currentMileageDate:"",goals:"",accent:"#ff3b3b",backgroundImage:"",backgroundOpacity:".65",carImage:"",carImageOffsetX:50,carImageOffsetY:50,isPublic:false,showroomNote:"",mods:[],services:[]}}
+function blankCar(){return {id:uid(),name:"New Car",year:"",make:"",model:"",chassis:"N/A",engine:"N/A",purchaseDate:"",purchaseMileage:"",currentMileage:"",currentMileageDate:"",goals:"",accent:"#ff3b3b",backgroundImage:"",backgroundOpacity:".65",carImage:"",carImageOffsetX:50,carImageOffsetY:50,isPublic:false,showroomNote:"",community:"",mods:[],services:[]}}
 function splitVehicleText(text){const p=String(text||"").trim().split(/\s+/).filter(Boolean);const out={year:"",make:"",model:""};if(/^\d{4}$/.test(p[0]||""))out.year=p.shift();if(p.length){out.make=p.shift()||"";out.model=p.join(" ")}return out}
-function normalizeCar(c={}){const sp=splitVehicleText(c.carModel||"");return {id:c.id||uid(),name:c.name||c.carName||"New Car",year:c.year||c.carYear||sp.year||"",make:c.make||c.carMake||sp.make||"",model:c.model||c.carModelName||sp.model||"",chassis:c.chassis||c.chassisCode||"N/A",engine:c.engine||c.engineCode||"N/A",purchaseDate:c.purchaseDate||"",purchaseMileage:c.purchaseMileage||"",currentMileage:c.currentMileage||"",currentMileageDate:c.currentMileageDate||"",goals:c.goals||"",accent:c.accent||c.accentColor||"#ff3b3b",backgroundImage:c.backgroundImage||"",backgroundOpacity:c.backgroundOpacity||".65",carImage:c.carImage||"",carImageOffsetX:c.carImageOffsetX??50,carImageOffsetY:c.carImageOffsetY??50,isPublic:c.isPublic||false,showroomNote:c.showroomNote||"",mods:Array.isArray(c.mods)?c.mods.map(m=>({id:m.id||uid(),category:m.category||"Cosmetics",name:m.name||"New Item",brand:m.brand||"",status:m.status||"Planned",price:m.price||"",date:m.date||"",image:m.image||"",notes:m.notes||""})):[],services:Array.isArray(c.services)?c.services.map(s=>({id:s.id||uid(),name:s.name||"Service",date:s.date||"",mileage:s.mileage||"",intervalMiles:s.intervalMiles||"",intervalMonths:s.intervalMonths||"",cost:s.cost||"",notes:s.notes||""})):[]}}
+function normalizeCar(c={}){const sp=splitVehicleText(c.carModel||"");return {id:c.id||uid(),name:c.name||c.carName||"New Car",year:c.year||c.carYear||sp.year||"",make:c.make||c.carMake||sp.make||"",model:c.model||c.carModelName||sp.model||"",chassis:c.chassis||c.chassisCode||"N/A",engine:c.engine||c.engineCode||"N/A",purchaseDate:c.purchaseDate||"",purchaseMileage:c.purchaseMileage||"",currentMileage:c.currentMileage||"",currentMileageDate:c.currentMileageDate||"",goals:c.goals||"",accent:c.accent||c.accentColor||"#ff3b3b",backgroundImage:c.backgroundImage||"",backgroundOpacity:c.backgroundOpacity||".65",carImage:c.carImage||"",carImageOffsetX:c.carImageOffsetX??50,carImageOffsetY:c.carImageOffsetY??50,isPublic:c.isPublic||false,showroomNote:c.showroomNote||"",community:c.community||"",mods:Array.isArray(c.mods)?c.mods.map(m=>({id:m.id||uid(),category:m.category||"Cosmetics",name:m.name||"New Item",brand:m.brand||"",status:m.status||"Planned",price:m.price||"",date:m.date||"",image:m.image||"",notes:m.notes||"",link:m.link||""})):[],services:Array.isArray(c.services)?c.services.map(s=>({id:s.id||uid(),name:s.name||"Service",date:s.date||"",mileage:s.mileage||"",intervalMiles:s.intervalMiles||"",intervalMonths:s.intervalMonths||"",cost:s.cost||"",notes:s.notes||""})):[]}}
 function normalizeState(raw){
   const prof={username:raw?.username||"",instagram:raw?.instagram||"",tiktok:raw?.tiktok||"",youtube:raw?.youtube||""};
   if(!raw||typeof raw!=="object")return {cars:[],activeCarId:null,...prof};
@@ -1472,6 +1543,9 @@ function modHTML(m){
       <label class="full">Notes
         <textarea oninput="setMod('${m.id}','notes',this.value)">${esc(m.notes)}</textarea>
       </label>
+      <label class="full">Product Link <span style="color:var(--muted);font-size:.78rem">(shown in Showroom)</span>
+        <input placeholder="https://…" value="${esc(m.link||"")}" oninput="setMod('${m.id}','link',this.value)">
+      </label>
     </div>
     <div class="button-row">
       ${m.image
@@ -1481,7 +1555,7 @@ function modHTML(m){
     </div>
   </div>`;
 }
-function addMod(cat){activeCar().mods.push({id:uid(),category:cat,name:"New Item",brand:"",status:"Planned",price:"",date:"",image:"",notes:""});save();renderMods();renderTotals()}
+function addMod(cat){activeCar().mods.push({id:uid(),category:cat,name:"New Item",brand:"",status:"Planned",price:"",date:"",image:"",notes:"",link:""});save();renderMods();renderTotals()}
 function deleteMod(id){activeCar().mods=activeCar().mods.filter(m=>m.id!==id);save();renderMods();renderTotals();renderTimeline()}
 function setMod(id,k,v){
   const m=activeCar().mods.find(x=>x.id===id);
@@ -1600,8 +1674,8 @@ function setService(id,k,v){
   }
 }
 
-function renderSettings(){const c=activeCar();if(!c)return;setName.value=c.name;setYear.value=c.year;setMakeModel("set",c.make,c.model);setChassis.value=c.chassis;setEngine.value=c.engine;setPurchaseDate.value=c.purchaseDate;setPurchaseMileage.value=c.purchaseMileage;setAccent.value=c.accent;setBgOpacity.value=c.backgroundOpacity;setGoals.value=c.goals;setShowroomNote.value=c.showroomNote||"";setIsPublic.checked=!!c.isPublic}
-function saveCarInfo(){const c=activeCar();if(!c)return;c.name=setName.value.trim()||"New Car";c.year=setYear.value.trim();c.make=getMakeVal("set");c.model=getModelVal("set");c.chassis=setChassis.value.trim()||"N/A";c.engine=setEngine.value.trim()||"N/A";c.purchaseDate=setPurchaseDate.value;c.purchaseMileage=setPurchaseMileage.value.trim();c.accent=setAccent.value;c.backgroundOpacity=setBgOpacity.value;c.goals=setGoals.value;c.showroomNote=setShowroomNote.value;c.isPublic=setIsPublic.checked;save();renderHero();renderGarage();renderTimeline();renderSettings();}
+function renderSettings(){const c=activeCar();if(!c)return;setName.value=c.name;setYear.value=c.year;setMakeModel("set",c.make,c.model);setChassis.value=c.chassis;setEngine.value=c.engine;setPurchaseDate.value=c.purchaseDate;setPurchaseMileage.value=c.purchaseMileage;setAccent.value=c.accent;setBgOpacity.value=c.backgroundOpacity;setGoals.value=c.goals;setShowroomNote.value=c.showroomNote||"";document.getElementById("setCommunity").value=c.community||"";setIsPublic.checked=!!c.isPublic}
+function saveCarInfo(){const c=activeCar();if(!c)return;c.name=setName.value.trim()||"New Car";c.year=setYear.value.trim();c.make=getMakeVal("set");c.model=getModelVal("set");c.chassis=setChassis.value.trim()||"N/A";c.engine=setEngine.value.trim()||"N/A";c.purchaseDate=setPurchaseDate.value;c.purchaseMileage=setPurchaseMileage.value.trim();c.accent=setAccent.value;c.backgroundOpacity=setBgOpacity.value;c.goals=setGoals.value;c.showroomNote=setShowroomNote.value;c.community=document.getElementById("setCommunity").value;c.isPublic=setIsPublic.checked;save();renderHero();renderGarage();renderTimeline();renderSettings();}
 async function saveWithFeedback(){
   saveCarInfo();
   if(!user){toast("Saved locally — sign in to sync to cloud");return;}
@@ -1654,6 +1728,7 @@ function switchGarageView(view){
 let showroomCache=[];
 let profileSort="category";
 let _profileData=null;
+let _profileCarId=null;
 function localPublicCars(){
   return (state.cars||[]).filter(c=>c.isPublic).map(c=>({
     _car_id:c.id,
@@ -1662,6 +1737,7 @@ function localPublicCars(){
     note:c.showroomNote||c.goals||"",
     hero_url:c.carImage||"",
     username:state.username||"",
+    community:c.community||"",
     total_spend:(c.mods||[]).filter(m=>m.status!=="Planned").reduce((s,m)=>s+parseFloat(m.price||0),0)+(c.services||[]).reduce((s,sv)=>s+parseFloat(sv.cost||0),0),
     mod_count:(c.mods||[]).length
   }));
@@ -1700,6 +1776,7 @@ function applyShowroomFilters(){
   const model=(document.getElementById("filterModel")?.value||"").trim().toLowerCase();
   const yearMin=parseInt(document.getElementById("filterYearMin")?.value)||0;
   const yearMax=parseInt(document.getElementById("filterYearMax")?.value)||9999;
+  const community=(document.getElementById("filterCommunity")?.value||"");
   const filtered=showroomCache.filter(r=>{
     const y=parseInt(r.year)||0;
     if(username&&!(r.username||"").toLowerCase().includes(username))return false;
@@ -1707,6 +1784,7 @@ function applyShowroomFilters(){
     if(model&&!(r.model||"").toLowerCase().includes(model))return false;
     if(yearMin&&y&&y<yearMin)return false;
     if(yearMax<9999&&y&&y>yearMax)return false;
+    if(community&&(r.community||"")!==community)return false;
     return true;
   });
   const el=document.getElementById("showroomList");
@@ -1719,9 +1797,12 @@ function applyShowroomFilters(){
     var ymm=[r.year,r.make,r.model].filter(Boolean).join(" ");
     var sub=r.username?esc(r.username)+"'s "+esc(ymm):esc(ymm);
     var note=r.note?'<p class="showroom-note">'+esc(r.note)+'</p>':"";
+    const communityLabels={jdm:"JDM",muscle:"American Muscle",euro:"Euro",truck:"Trucks & Off-road",classic:"Classic",electric:"Electric/Hybrid"};
+    const badge=r.community?'<span class="community-badge">'+esc(communityLabels[r.community]||r.community)+'</span><br>':'';
     return '<div class="showroom-card glass" data-carid="'+esc(r._car_id||'')+'">'
       +img
       +'<div class="showroom-info">'
+      +badge
       +'<p class="showroom-sub" style="margin:0 0 2px;font-weight:600;font-size:.95rem;color:var(--text)">'+sub+'</p>'
       +note
       +'<div class="showroom-stats">'
@@ -1736,12 +1817,13 @@ function applyShowroomFilters(){
   });
 }
 function clearShowroomFilters(){
-  ["filterUsername","filterMake","filterModel","filterYearMin","filterYearMax"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  ["filterUsername","filterMake","filterModel","filterYearMin","filterYearMax","filterCommunity"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
   applyShowroomFilters();
 }
 async function openPublicProfile(carId){
   if(!carId)return;
   profileSort="category";
+  _profileCarId=carId;
   document.getElementById("garageHome").classList.add("hidden");
   document.getElementById("publicProfile").classList.remove("hidden");
   history.pushState({profile:carId},"","?profile="+encodeURIComponent(carId));
@@ -1817,12 +1899,19 @@ function renderPublicProfile(d,isOwn){
   document.getElementById("profileSpend").innerHTML=spendHTML;
   // Mods list
   renderProfileMods(mods);
+  // Likes + comments
+  loadProfileLikes(_profileCarId);
+  loadProfileComments(_profileCarId);
 }
 function profileModRowHTML(m){
   var h='<div class="profile-mod-row"><div>'
     +'<div class="profile-mod-name">'+esc(m.name||"")+'</div>';
   if(m.brand)h+='<div class="profile-mod-meta">'+esc(m.brand)+'</div>';
   if(m.notes)h+='<div class="profile-mod-meta">'+esc(m.notes)+'</div>';
+  if(m.link){
+    const safeUrl=esc(m.link);
+    h+='<button class="btn" style="padding:3px 10px;font-size:.75rem;margin-top:5px" onclick="event.stopPropagation();showRedirectModal(\''+safeUrl.replace(/'/g,"&#39;")+'\')" >🔗 View Product</button>';
+  }
   h+='</div><div>'
     +'<div class="profile-mod-price">'+money(m.price||0)+'</div>'
     +'<div class="profile-mod-status">'+esc(m.status||"")+'</div>'
@@ -2202,12 +2291,150 @@ render();
 initCloud();
 window.dispatchEvent(new Event("appReady"));
 
+// ── Splash ──────────────────────────────────────────────────────────────────
+function dismissSplash(){
+  const s=document.getElementById('splash');
+  if(!s)return;
+  s.classList.add('out');
+  setTimeout(()=>s.remove(),500);
+}
+(function(){
+  if(sessionStorage.getItem('splashSeen')){dismissSplash();return;}
+  sessionStorage.setItem('splashSeen','1');
+  setTimeout(dismissSplash,4000);
+})();
+
+// ── Service worker (PWA update fix) ─────────────────────────────────────────
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// ── Redirect warning ─────────────────────────────────────────────────────────
+let _redirectTarget='';
+function showRedirectModal(url){
+  _redirectTarget=url;
+  document.getElementById('redirectUrlDisplay').textContent=url;
+  document.getElementById('redirectModal').classList.remove('hidden');
+}
+function confirmRedirect(){
+  document.getElementById('redirectModal').classList.add('hidden');
+  if(_redirectTarget)window.open(_redirectTarget,'_blank','noopener,noreferrer');
+}
+
+// ── Share ────────────────────────────────────────────────────────────────────
+function sharePublicProfile(){
+  if(!_profileCarId)return;
+  const url=location.origin+location.pathname+'?profile='+encodeURIComponent(_profileCarId);
+  const title=(_profileData&&(_profileData.name||_profileData.car_name))||'Car Build';
+  if(navigator.share){navigator.share({title,url}).catch(()=>{});}
+  else{navigator.clipboard.writeText(url).then(()=>toast('Link copied ✓')).catch(()=>toast('Copy failed'));}
+}
+
+// ── Likes ────────────────────────────────────────────────────────────────────
+async function loadProfileLikes(carId){
+  const btn=document.getElementById('likeBtn');
+  const cnt=document.getElementById('likeCount');
+  if(!btn||!carId)return;
+  btn.classList.remove('liked');btn.disabled=false;
+  if(!cloud){cnt.textContent='0';return;}
+  try{
+    const{data,error}=await cloud.rpc('get_car_likes',{p_car_id:carId});
+    if(error)throw error;
+    cnt.textContent=data?.count||0;
+    if(data?.liked){btn.classList.add('liked');btn.innerHTML='♥ <span id="likeCount">'+data.count+'</span>';}
+    else{btn.innerHTML='♡ <span id="likeCount">'+(data?.count||0)+'</span>';}
+  }catch{cnt.textContent='0';}
+}
+async function toggleProfileLike(){
+  if(!user){toast('Sign in to like builds');return;}
+  if(!_profileCarId||!cloud)return;
+  try{
+    const{data,error}=await cloud.rpc('toggle_car_like',{p_car_id:_profileCarId});
+    if(error)throw error;
+    const btn=document.getElementById('likeBtn');
+    if(data?.liked){btn.classList.add('liked');btn.innerHTML='♥ <span id="likeCount">'+data.count+'</span>';}
+    else{btn.classList.remove('liked');btn.innerHTML='♡ <span id="likeCount">'+data.count+'</span>';}
+  }catch(e){toast('Like failed');}
+}
+
+// ── Comments ─────────────────────────────────────────────────────────────────
+async function loadProfileComments(carId){
+  const list=document.getElementById('commentsList');
+  const form=document.getElementById('commentForm');
+  const signIn=document.getElementById('commentSignIn');
+  if(!list||!carId)return;
+  if(user&&state.username){form.style.display='block';signIn.style.display='none';}
+  else if(user&&!state.username){form.style.display='none';signIn.style.display='block';signIn.textContent='Set a username in Profile to comment';}
+  else{form.style.display='none';signIn.style.display='block';}
+  if(!cloud){list.innerHTML='';return;}
+  list.innerHTML='<div style="color:var(--muted);font-size:.85rem;padding:8px 0">Loading comments…</div>';
+  try{
+    const{data,error}=await cloud.rpc('get_car_comments',{p_car_id:carId});
+    if(error)throw error;
+    renderCommentsList(data||[]);
+  }catch{list.innerHTML='';}
+}
+function renderCommentsList(comments){
+  const list=document.getElementById('commentsList');
+  if(!list)return;
+  if(!comments.length){list.innerHTML='<div style="color:var(--muted);font-size:.85rem;padding:8px 0">No comments yet.</div>';return;}
+  list.innerHTML=comments.map(c=>{
+    const ago=timeAgo(c.created_at);
+    const del=c.is_own?'<button class="comment-del" onclick="deleteProfileComment(\''+esc(c.id)+'\')">Delete</button>':'';
+    return '<div class="comment-row">'
+      +'<div class="comment-meta"><span class="comment-user">@'+esc(c.username)+'</span><span style="display:flex;align-items:center;gap:8px"><span class="comment-time">'+ago+'</span>'+del+'</span></div>'
+      +'<div class="comment-body">'+esc(c.body)+'</div>'
+      +'</div>';
+  }).join('');
+}
+async function submitComment(){
+  if(!user||!cloud||!_profileCarId)return;
+  const ta=document.getElementById('commentText');
+  const body=(ta.value||'').trim();
+  if(!body){toast('Write something first');return;}
+  if(!state.username){toast('Set a username in Profile first');return;}
+  try{
+    const{data,error}=await cloud.rpc('add_car_comment',{p_car_id:_profileCarId,p_username:state.username,p_body:body});
+    if(error)throw error;
+    ta.value='';
+    await loadProfileComments(_profileCarId);
+  }catch(e){toast('Comment failed');}
+}
+async function deleteProfileComment(commentId){
+  if(!cloud)return;
+  try{
+    await cloud.rpc('delete_car_comment',{p_comment_id:commentId});
+    await loadProfileComments(_profileCarId);
+  }catch{toast('Delete failed');}
+}
+function timeAgo(iso){
+  const secs=Math.floor((Date.now()-new Date(iso))/1000);
+  if(secs<60)return 'just now';
+  if(secs<3600)return Math.floor(secs/60)+'m ago';
+  if(secs<86400)return Math.floor(secs/3600)+'h ago';
+  return Math.floor(secs/86400)+'d ago';
+}
+
 // Flush any pending cloud save when user closes or refreshes the tab
 window.addEventListener("beforeunload",()=>{if(cloudSavePending&&user)saveCloudNow(true,true);});
 
 // Safety net: push pending saves every 30 seconds in case something slipped through
 setInterval(()=>{if(cloudSavePending&&user&&!cloudSaving)saveCloudNow(true);},30000);
 </script>
+
+<!-- Redirect warning modal -->
+<div id="redirectModal" class="modal hidden">
+  <div class="modal-card glass">
+    <div class="modal-head"><h2>External Link</h2></div>
+    <p style="color:var(--muted);margin:0 0 10px;font-size:.9rem">You are about to visit an external website:</p>
+    <p id="redirectUrlDisplay" style="word-break:break-all;font-size:.8rem;background:rgba(255,255,255,.05);padding:10px 12px;border-radius:10px;border:1px solid var(--line);margin:0 0 12px;color:var(--muted)"></p>
+    <p style="color:var(--muted);font-size:.8rem;margin:0 0 16px;line-height:1.5">My Garage is not responsible for the content at this link. Continue at your own discretion.</p>
+    <div class="button-row" style="justify-content:flex-end">
+      <button class="btn" onclick="document.getElementById('redirectModal').classList.add('hidden')">Cancel</button>
+      <button class="btn primary" onclick="confirmRedirect()">Continue →</button>
+    </div>
+  </div>
+</div>
 
 <!-- iPhone 17 Pro Max frame overlay (desktop only) -->
 <div class="phone-chrome">
