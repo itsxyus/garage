@@ -1761,9 +1761,10 @@ async function renderShowroom(){
     showroomCache=own;
     rpcFailed=true;
   }
-  if(rpcFailed&&showroomCache.length===0){
+  if(rpcFailed){
     el.innerHTML='<div class="showroom-empty" style="padding:24px 16px;text-align:center">'
-      +'<p style="margin:0 0 12px;color:var(--muted)">Showroom couldn\'t load right now.</p>'
+      +'<p style="margin:0 0 4px;color:var(--muted)">Couldn\'t reach the Showroom.</p>'
+      +'<p style="margin:0 0 14px;font-size:.8rem;color:var(--muted)">Run the <b>get_showroom_cars</b> SQL function in Supabase, then retry.</p>'
       +'<button class="btn" onclick="renderShowroom()">Retry</button>'
       +'</div>';
     return;
@@ -2017,8 +2018,14 @@ window.addEventListener("popstate",e=>{
   const params=new URLSearchParams(window.location.search);
   const pid=params.get("profile");
   const uname=params.get("user");
-  if(pid) window.addEventListener("appReady",()=>openPublicProfile(pid),{once:true});
+  if(pid) window.addEventListener("appReady",()=>{
+    guest=true;
+    if(typeof hideAuth==="function")hideAuth();
+    openPublicProfile(pid);
+  },{once:true});
   if(uname) window.addEventListener("appReady",()=>{
+    guest=true;
+    if(typeof hideAuth==="function")hideAuth();
     switchGarageView("showroom");
     const el=document.getElementById("filterUsername");
     if(el){el.value=uname;applyShowroomFilters();}
