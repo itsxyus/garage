@@ -1765,8 +1765,7 @@ async function renderShowroom(){
   }
   if(rpcFailed){
     el.innerHTML='<div class="showroom-empty" style="padding:24px 16px;text-align:center">'
-      +'<p style="margin:0 0 4px;color:var(--muted)">Couldn\'t reach the Showroom.</p>'
-      +'<p style="margin:0 0 10px;font-size:.75rem;color:var(--bad);word-break:break-word;text-align:left;background:rgba(255,0,0,.06);padding:8px 10px;border-radius:10px;border:1px solid rgba(255,0,0,.15)">'+esc(rpcError||"unknown error")+'</p>'
+      +'<p style="margin:0 0 12px;color:var(--muted)">Showroom couldn\'t load right now.</p>'
       +'<button class="btn" onclick="renderShowroom()">Retry</button>'
       +'</div>';
     return;
