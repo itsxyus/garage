@@ -1266,7 +1266,7 @@ async function signUp(){const email=authEmail.value.trim(),password=authPassword
 async function signIn(){const email=authEmail.value.trim(),password=authPassword.value;const r=await cloud.auth.signInWithPassword({email,password});if(r.error)return alert(r.error.message);user=r.data.user;hideAuth();}
 async function forgotPassword(){const email=prompt("Enter your account email:");if(!email)return;const{error}=await cloud.auth.resetPasswordForEmail(email,{redirectTo:location.href});if(error)return alert(error.message);alert("Reset email sent — check your inbox (and spam).");}
 async function updatePassword(){const p=document.getElementById("newPasswordInput").value;if(!p||p.length<6)return alert("Password must be at least 6 characters.");const{error}=await cloud.auth.updateUser({password:p});if(error)return alert(error.message);document.getElementById("resetPasswordModal").classList.add("hidden");document.getElementById("newPasswordInput").value="";toast("Password updated!");}
-function guestMode(){guest=true;hideAuth();setStatus("Guest mode • saved on this device");render()}
+function guestMode(){guest=true;hideAuth();setStatus("Guest mode • saved on this device");const pid=new URLSearchParams(window.location.search).get("profile");if(pid){openPublicProfile(pid);}else{render();}}
 function browseShowroom(){guest=true;hideAuth();setStatus("Guest mode • saved on this device");render();setTimeout(()=>switchGarageView("showroom"),80);}
 async function signOut(){
   guest=false;
