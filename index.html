@@ -1745,6 +1745,7 @@ function localPublicCars(){
 async function renderShowroom(){
   const el=document.getElementById("showroomList");
   showroomCache=[];
+  let rpcError='';
   el.innerHTML='<div class="showroom-empty">Loading…</div>';
   // Always include own public cars from local state — no RPC needed for these
   const own=localPublicCars();
@@ -1760,11 +1761,12 @@ async function renderShowroom(){
     console.warn("Showroom RPC unavailable:",e.message||e);
     showroomCache=own;
     rpcFailed=true;
+    rpcError=e.message||String(e);
   }
   if(rpcFailed){
     el.innerHTML='<div class="showroom-empty" style="padding:24px 16px;text-align:center">'
       +'<p style="margin:0 0 4px;color:var(--muted)">Couldn\'t reach the Showroom.</p>'
-      +'<p style="margin:0 0 14px;font-size:.8rem;color:var(--muted)">Run the <b>get_showroom_cars</b> SQL function in Supabase, then retry.</p>'
+      +'<p style="margin:0 0 10px;font-size:.75rem;color:var(--bad);word-break:break-word;text-align:left;background:rgba(255,0,0,.06);padding:8px 10px;border-radius:10px;border:1px solid rgba(255,0,0,.15)">'+esc(rpcError||"unknown error")+'</p>'
       +'<button class="btn" onclick="renderShowroom()">Retry</button>'
       +'</div>';
     return;
