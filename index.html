@@ -12,6 +12,7 @@
 <style>
 :root{
   --accent:#ff3b3b;
+  --accent-dark:var(--accent-dark);
   --text:#f6f6f6;
   --muted:#a5a8b2;
   --line:rgba(255,255,255,.14);
@@ -51,7 +52,7 @@ button{cursor:pointer}
   font-weight:500;
 }
 .btn.primary{
-  background:linear-gradient(135deg,var(--accent),rgba(90,0,0,.85));
+  background:linear-gradient(135deg,var(--accent),var(--accent-dark));
   border-color:var(--accent);
   color:white;
 }
@@ -678,7 +679,7 @@ input[type=range]{accent-color:var(--accent)}
 /* Showroom */
 .garage-view-toggle{display:flex;gap:8px;margin-bottom:16px}
 .garage-view-toggle .btn{flex:1;text-align:center;font-weight:500}
-.garage-view-toggle .btn.active{background:linear-gradient(135deg,var(--accent),rgba(90,0,0,.85));border-color:var(--accent);color:#fff}
+.garage-view-toggle .btn.active{background:linear-gradient(135deg,var(--accent),var(--accent-dark));border-color:var(--accent);color:#fff}
 .showroom-filters{padding:12px 14px;margin-bottom:14px;border-radius:16px;display:flex;flex-direction:column;gap:8px}
 .showroom-filter-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .showroom-year-row{display:flex;align-items:center;gap:6px}
@@ -695,9 +696,11 @@ input[type=range]{accent-color:var(--accent)}
 .showroom-stats{display:flex;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 .showroom-stats span{font-size:.82rem;color:var(--accent);font-weight:600}
 .showroom-empty{text-align:center;padding:48px 20px;color:var(--muted);font-size:.95rem}
-.showroom-toggle-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line);margin-top:4px}
-.showroom-toggle-row input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent);flex-shrink:0}
+.showroom-toggle-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;margin-top:14px;background:linear-gradient(135deg,rgba(255,59,59,.08),rgba(255,59,59,.03));border:1px solid rgba(255,59,59,.2)}
+.showroom-toggle-row input[type=checkbox]{width:20px;height:20px;margin:0;accent-color:var(--accent);flex-shrink:0;cursor:pointer}
 .showroom-toggle-row span{font-size:.9rem;color:var(--text);line-height:1.35}
+.showroom-toggle-row strong{display:block;font-size:.95rem;font-weight:600;color:var(--text)}
+.showroom-toggle-row small{display:block;font-size:.78rem;color:var(--muted);margin-top:2px}
 /* Public profile */
 .profile-hero{width:100%;max-height:270px;object-fit:contain;display:block;margin:8px auto 18px}
 .profile-note-block{font-size:.9rem;line-height:1.55;color:var(--muted);padding:12px 14px;background:rgba(255,255,255,.04);border-radius:12px;border:1px solid var(--line);margin:10px 0 0}
@@ -940,7 +943,10 @@ input[type=range]{accent-color:var(--accent)}
         </div>
         <div class="showroom-toggle-row">
           <input type="checkbox" id="setIsPublic" onclick="handleShowroomToggle()">
-          <span>Show this car in the public Showroom</span>
+          <div>
+            <strong>✦ List in Showroom</strong>
+            <small>Share this build publicly so anyone can discover and view it</small>
+          </div>
         </div>
         <div class="button-row" style="margin-top:14px">
           <button class="btn primary" onclick="saveWithFeedback()">Save</button>
@@ -1414,7 +1420,13 @@ function closeCarModal(){carModal.classList.add("hidden")}
 function saveCarFromModal(){let c=state.cars.find(x=>x.id===carModal.dataset.editId);if(!c){c=blankCar();state.cars.push(c)}c.name=modalName.value.trim()||"New Car";c.year=modalYear.value.trim();c.make=getMakeVal("modal");c.model=getModelVal("modal");c.chassis=modalChassis.value.trim()||"N/A";c.engine=modalEngine.value.trim()||"N/A";c.purchaseDate=modalPurchaseDate.value;c.purchaseMileage=modalPurchaseMileage.value.trim();closeCarModal();state.activeCarId=c.id;save();showCarApp()}
 function deleteCar(id){const c=state.cars.find(x=>x.id===id);if(!c||!confirm("Delete "+(c.name||"this car")+"?"))return;if(user&&cloud){const paths=[c.carImage,c.backgroundImage,...(c.mods||[]).map(m=>m.image)].map(storagePathFromUrl).filter(Boolean);if(paths.length)cloud.storage.from(STORAGE_BUCKET).remove(paths).catch(e=>console.warn("Storage cleanup:",e));}state.cars=state.cars.filter(x=>x.id!==id);state.activeCarId=null;save();showGarage()}
 
-function renderHero(){const c=activeCar();if(!c)return;document.documentElement.style.setProperty("--accent",c.accent||"#ff3b3b");document.documentElement.style.setProperty("--bg-dim", String(1 - parseFloat(c.backgroundOpacity || ".65") * .55));document.documentElement.style.setProperty("--custom-bg",c.backgroundImage?`url("${c.backgroundImage}")`:DEFAULT_BG);homeTitle.textContent="My "+(c.name||"Car");homeUpdated.textContent="Last updated • "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});carModelHero.textContent=[c.year,c.make,c.model].filter(Boolean).join(" ")||"Year Make Model";chassisTag.textContent=c.chassis||"N/A";engineTag.textContent=c.engine||"N/A";heroImg.src=c.carImage||fallbackImg;heroImg.style.objectPosition=`${c.carImageOffsetX??50}% ${c.carImageOffsetY??50}%`;activeCarLabel.textContent=c.name||"Car Log"}
+function accentDark(hex){
+  hex=(hex||"#ff3b3b").replace("#","");
+  if(hex.length===3)hex=hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+  const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
+  return `rgba(${Math.round(r*.45)},${Math.round(g*.45)},${Math.round(b*.45)},.9)`;
+}
+function renderHero(){const c=activeCar();if(!c)return;const acc=c.accent||"#ff3b3b";document.documentElement.style.setProperty("--accent",acc);document.documentElement.style.setProperty("--accent-dark",accentDark(acc));document.documentElement.style.setProperty("--bg-dim", String(1 - parseFloat(c.backgroundOpacity || ".65") * .55));document.documentElement.style.setProperty("--custom-bg",c.backgroundImage?`url("${c.backgroundImage}")`:DEFAULT_BG);homeTitle.textContent="My "+(c.name||"Car");homeUpdated.textContent="Last updated • "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});carModelHero.textContent=[c.year,c.make,c.model].filter(Boolean).join(" ")||"Year Make Model";chassisTag.textContent=c.chassis||"N/A";engineTag.textContent=c.engine||"N/A";heroImg.src=c.carImage||fallbackImg;heroImg.style.objectPosition=`${c.carImageOffsetX??50}% ${c.carImageOffsetY??50}%`;activeCarLabel.textContent=c.name||"Car Log"}
 function renderTotals(){
   const c=activeCar();
   if(!c)return;
@@ -2084,7 +2096,12 @@ function showPage(id,btn){
 
   window.scrollTo({top:0,behavior:"smooth"});
 }
-function initSwipe(wrapperSel,targetSel){document.querySelectorAll(wrapperSel).forEach(w=>{const t=w.querySelector(targetSel);if(!t||t.dataset.ready)return;t.dataset.ready=1;let sx=0,sy=0,dx=0,drag=false;t.addEventListener("pointerdown",e=>{sx=e.clientX;sy=e.clientY;dx=0;drag=true;t.setPointerCapture(e.pointerId)});t.addEventListener("pointermove",e=>{if(!drag)return;dx=e.clientX-sx;if(Math.abs(e.clientY-sy)>35)return;if(dx<0)t.style.transform=`translateX(${Math.max(dx,-112)}px)`});t.addEventListener("pointerup",e=>{if(!drag)return;drag=false;t.style.transform="";if(dx<-55){t.classList.add("swiped");w.classList.add("show-delete")}else if(dx>25){t.classList.remove("swiped");w.classList.remove("show-delete")}})})}
+function initSwipe(wrapperSel,targetSel){document.querySelectorAll(wrapperSel).forEach(w=>{const t=w.querySelector(targetSel);if(!t||t.dataset.ready)return;t.dataset.ready=1;let sx=0,sy=0,dx=0,drag=false,locked=false;
+  function cancel(){drag=false;locked=false;dx=0;t.style.transform="";}
+  t.addEventListener("pointerdown",e=>{sx=e.clientX;sy=e.clientY;dx=0;drag=true;locked=false;t.setPointerCapture(e.pointerId);});
+  t.addEventListener("pointermove",e=>{if(!drag)return;const cdx=e.clientX-sx,cdy=e.clientY-sy;if(!locked){if(Math.abs(cdy)>Math.abs(cdx)+6){cancel();return;}locked=true;}dx=cdx;if(dx<0)t.style.transform=`translateX(${Math.max(dx,-112)}px)`;else t.style.transform="";});
+  t.addEventListener("pointerup",e=>{if(!drag)return;drag=false;locked=false;t.style.transform="";if(dx<-45){t.classList.add("swiped");w.classList.add("show-delete");}else{t.classList.remove("swiped");w.classList.remove("show-delete");}});
+  t.addEventListener("pointercancel",cancel);})}
 
 function compressImageFile(file, options={}){
   const maxSide = options.maxSide || 1200;
