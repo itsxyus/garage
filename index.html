@@ -775,7 +775,7 @@ input[type=range]{accent-color:var(--accent)}
       <label>Model<select id="modalModel" onchange="onModelChange('modal')"><option value="">Model</option></select><input id="modalModelOther" placeholder="Type model name" style="display:none;margin-top:5px"></label>
       <label>Chassis Code<input id="modalChassis" placeholder="Chassis code"></label>
       <label>Engine<input id="modalEngine" placeholder="Engine"></label>
-      <label>Purchase Date<input id="modalPurchaseDate" type="date"></label>
+      <label class="span2">Purchase Date<input id="modalPurchaseDate" type="date"></label>
       <label>Purchase Mileage<input id="modalPurchaseMileage" inputmode="numeric" placeholder="Mileage"></label>
     </div>
     <div class="button-row" style="justify-content:flex-end;margin-top:14px"><button class="btn primary" onclick="saveCarFromModal()">Save Car</button></div>
@@ -923,7 +923,7 @@ input[type=range]{accent-color:var(--accent)}
           <label>Model<select id="setModel" onchange="onModelChange('set')"><option value="">Model</option></select><input id="setModelOther" placeholder="Type model name" style="display:none;margin-top:5px"></label>
           <label>Chassis Code<input id="setChassis" placeholder="Chassis code"></label>
           <label>Engine<input id="setEngine" placeholder="Engine"></label>
-          <label>Purchase Date<input id="setPurchaseDate" type="date"></label>
+          <label class="span2">Purchase Date<input id="setPurchaseDate" type="date"></label>
           <label>Purchase Mileage<input id="setPurchaseMileage" inputmode="numeric" placeholder="Mileage"></label>
           <label class="span2">Accent Color<div class="inline-save"><div class="color-row"><input id="setAccent" type="color"><span>Theme color</span></div></div></label>
           <label class="span2">Background Opacity<input id="setBgOpacity" type="range" min=".25" max="1" step=".01" oninput="activeCar().backgroundOpacity=this.value;save();renderHero()"></label>
@@ -1549,7 +1549,7 @@ function modHTML(m){
           ${["Installed","Ordered","Planned"].map(s=>`<option ${m.status===s?"selected":""}>${s}</option>`).join("")}
         </select>
       </label>
-      <label>Date
+      <label class="span2">Date
         <input type="date" value="${esc(m.date)}" oninput="setMod('${m.id}','date',this.value)">
       </label>
       <label class="full">Notes
@@ -1748,6 +1748,8 @@ function localPublicCars(){
     chassis:c.chassis,engine:c.engine,
     note:c.showroomNote||c.goals||"",
     hero_url:c.carImage||"",
+    hero_offset_x:c.carImageOffsetX??50,
+    hero_offset_y:c.carImageOffsetY??50,
     username:state.username||"",
     community:c.community||"",
     total_spend:(c.mods||[]).filter(m=>m.status!=="Planned").reduce((s,m)=>s+parseFloat(m.price||0),0)+(c.services||[]).reduce((s,sv)=>s+parseFloat(sv.cost||0),0),
@@ -1807,7 +1809,7 @@ function applyShowroomFilters(){
     return;
   }
   el.innerHTML=filtered.map(r=>{
-    var img=r.hero_url?'<img class="showroom-hero" src="'+esc(r.hero_url)+'" alt="" onerror="this.style.display=\'none\'">':'';
+    var img=r.hero_url?'<img class="showroom-hero" src="'+esc(r.hero_url)+'" style="object-position:'+(r.hero_offset_x??50)+'% '+(r.hero_offset_y??50)+'%" alt="" onerror="this.style.display=\'none\'">':'';
     var ymm=[r.year,r.make,r.model].filter(Boolean).join(" ");
     var sub=r.username?esc(r.username)+"'s "+esc(ymm):esc(ymm);
     var note=r.note?'<p class="showroom-note">'+esc(r.note)+'</p>':"";
