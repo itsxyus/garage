@@ -737,6 +737,19 @@ input[type=range]{accent-color:var(--accent)}
 .comment-body{font-size:.9rem;line-height:1.45;color:var(--text)}
 .comment-del{background:none;border:none;color:var(--muted);font-size:.75rem;cursor:pointer;padding:0}
 .comment-del:hover{color:var(--bad)}
+.comment-pin-badge{font-size:.72rem;color:var(--accent);font-weight:700;margin-bottom:3px;letter-spacing:.01em}
+.comment-actions{display:flex;align-items:center;gap:12px;margin-top:6px}
+.comment-like-btn{background:none;border:none;color:var(--muted);font-size:.8rem;cursor:pointer;padding:0;display:flex;align-items:center;gap:3px;line-height:1}
+.comment-like-btn.liked{color:var(--accent)}
+.comment-reply-btn,.comment-pin-btn{background:none;border:none;color:var(--muted);font-size:.78rem;cursor:pointer;padding:0}
+.comment-pin-btn.pinned{color:var(--accent)}
+.comment-toggle-replies{background:none;border:none;color:var(--accent);font-size:.8rem;cursor:pointer;padding:2px 0;margin-top:4px;display:block}
+.comment-replies{margin-top:6px;padding-left:14px;border-left:2px solid rgba(255,255,255,.08);display:none}
+.comment-replies.open{display:block}
+.reply-row{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.reply-row:last-child{border-bottom:none}
+.reply-form{margin-top:8px;display:none}
+.reply-form.open{display:block}
 .community-badge{display:inline-block;font-size:.7rem;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--muted);margin-bottom:4px}
 </style>
 </head>
@@ -2404,15 +2417,65 @@ async function loadProfileComments(carId){
 function renderCommentsList(comments){
   const list=document.getElementById('commentsList');
   if(!list)return;
-  if(!comments.length){list.innerHTML='<div style="color:var(--muted);font-size:.85rem;padding:8px 0">No comments yet.</div>';return;}
-  list.innerHTML=comments.map(c=>{
-    const ago=timeAgo(c.created_at);
-    const del=c.is_own?'<button class="comment-del" onclick="deleteProfileComment(\''+esc(c.id)+'\')">Delete</button>':'';
-    return '<div class="comment-row">'
-      +'<div class="comment-meta"><span class="comment-user">@'+esc(c.username)+'</span><span style="display:flex;align-items:center;gap:8px"><span class="comment-time">'+ago+'</span>'+del+'</span></div>'
-      +'<div class="comment-body">'+esc(c.body)+'</div>'
-      +'</div>';
-  }).join('');
+  if(!comments||!comments.length){list.innerHTML='<div style="color:var(--muted);font-size:.85rem;padding:8px 0">No comments yet.</div>';return;}
+  const isOwner=!!(state.cars||[]).find(c=>c.id===_profileCarId);
+  const sorted=[...comments].sort((a,b)=>{
+    if(a.is_pinned&&!b.is_pinned)return -1;
+    if(!a.is_pinned&&b.is_pinned)return 1;
+    if(a.is_pinned&&b.is_pinned)return (a.pin_order||0)-(b.pin_order||0);
+    return new Date(a.created_at)-new Date(b.created_at);
+  });
+  list.innerHTML=sorted.map(c=>buildCommentHTML(c,isOwner,false)).join('');
+}
+function buildCommentHTML(c,isOwner,isReply){
+  const id=esc(c.id);
+  const ago=timeAgo(c.created_at);
+  const pinBadge=c.is_pinned?'<div class="comment-pin-badge">📌 Pinned</div>':'';
+  const canDel=c.is_own||isOwner;
+  const delBtn=canDel?`<button class="comment-del" onclick="deleteProfileComment('${id}')">Delete</button>`:'';
+  const pinBtn=isOwner&&!isReply?(c.is_pinned
+    ?`<button class="comment-pin-btn pinned" onclick="unpinComment('${id}')">Unpin</button>`
+    :`<button class="comment-pin-btn" onclick="pinComment('${id}')">📌 Pin</button>`):'';
+  const likeBtn=user
+    ?`<button class="comment-like-btn${c.liked_by_me?' liked':''}" id="cl-${id}" onclick="toggleCommentLike('${id}')">${c.liked_by_me?'♥':'♡'} <span>${c.like_count||0}</span></button>`
+    :(c.like_count>0?`<span class="comment-like-btn" style="cursor:default">♥ ${c.like_count}</span>`:'');
+  const replyBtn=(!isReply&&user)?`<button class="comment-reply-btn" onclick="toggleReplyForm('${id}')">↩ Reply</button>`:'';
+  let repliesSection='';
+  if(!isReply){
+    const replies=c.replies||[];
+    const togBtn=replies.length?`<button class="comment-toggle-replies" id="ctog-${id}" onclick="toggleReplies('${id}')">▾ ${replies.length} repl${replies.length===1?'y':'ies'}</button>`:'';
+    const repliesHTML=replies.map(r=>buildCommentHTML(r,isOwner,true)).join('');
+    repliesSection=togBtn
+      +`<div class="comment-replies" id="crep-${id}">${repliesHTML}</div>`
+      +(user?`<div class="reply-form" id="rf-${id}"><textarea id="rta-${id}" placeholder="Reply to @${esc(c.username)}…" style="width:100%;min-height:52px;resize:none;font-size:.85rem"></textarea><div style="display:flex;gap:6px;margin-top:5px"><button class="btn" onclick="toggleReplyForm('${id}')" style="flex:0;min-width:70px">Cancel</button><button class="btn primary" onclick="submitReply('${id}')" style="flex:1">Reply</button></div></div>`:'');
+  }
+  return `<div class="${isReply?'reply-row':'comment-row'}">`
+    +pinBadge
+    +`<div class="comment-meta"><span class="comment-user">@${esc(c.username)}</span>`
+    +`<div style="display:flex;align-items:center;gap:8px"><span class="comment-time">${ago}</span>${delBtn}${pinBtn}</div></div>`
+    +`<div class="comment-body">${esc(c.body)}</div>`
+    +`<div class="comment-actions">${likeBtn}${replyBtn}</div>`
+    +repliesSection
+    +'</div>';
+}
+function toggleReplies(commentId){
+  const rep=document.getElementById('crep-'+commentId);
+  const tog=document.getElementById('ctog-'+commentId);
+  if(!rep)return;
+  const open=rep.classList.toggle('open');
+  if(tog){const n=rep.querySelectorAll('.reply-row').length;tog.textContent=(open?'▴':'▾')+' '+n+' repl'+(n===1?'y':'ies');}
+}
+function toggleReplyForm(commentId){
+  const rf=document.getElementById('rf-'+commentId);
+  if(!rf)return;
+  const opening=!rf.classList.contains('open');
+  rf.classList.toggle('open');
+  if(opening){
+    document.getElementById('crep-'+commentId)?.classList.add('open');
+    const tog=document.getElementById('ctog-'+commentId);
+    if(tog){const n=document.getElementById('crep-'+commentId)?.querySelectorAll('.reply-row').length||0;tog.textContent='▴ '+n+' repl'+(n===1?'y':'ies');}
+    setTimeout(()=>document.getElementById('rta-'+commentId)?.focus(),50);
+  }
 }
 async function submitComment(){
   if(!user||!cloud||!_profileCarId)return;
@@ -2421,11 +2484,23 @@ async function submitComment(){
   if(!body){toast('Write something first');return;}
   if(!state.username){toast('Set a username in Profile first');return;}
   try{
-    const{data,error}=await cloud.rpc('add_car_comment',{p_car_id:_profileCarId,p_username:state.username,p_body:body});
+    const{error}=await cloud.rpc('add_car_comment',{p_car_id:_profileCarId,p_username:state.username,p_body:body});
     if(error)throw error;
     ta.value='';
     await loadProfileComments(_profileCarId);
-  }catch(e){toast('Comment failed');}
+  }catch{toast('Comment failed');}
+}
+async function submitReply(parentId){
+  if(!user||!cloud||!_profileCarId)return;
+  const ta=document.getElementById('rta-'+parentId);
+  const body=(ta?.value||'').trim();
+  if(!body){toast('Write something first');return;}
+  if(!state.username){toast('Set a username in Profile first');return;}
+  try{
+    const{error}=await cloud.rpc('add_car_comment',{p_car_id:_profileCarId,p_username:state.username,p_body:body,p_parent_id:parentId});
+    if(error)throw error;
+    await loadProfileComments(_profileCarId);
+  }catch{toast('Reply failed');}
 }
 async function deleteProfileComment(commentId){
   if(!cloud)return;
@@ -2433,6 +2508,31 @@ async function deleteProfileComment(commentId){
     await cloud.rpc('delete_car_comment',{p_comment_id:commentId});
     await loadProfileComments(_profileCarId);
   }catch{toast('Delete failed');}
+}
+async function toggleCommentLike(commentId){
+  if(!user||!cloud)return;
+  try{
+    const{data,error}=await cloud.rpc('toggle_comment_like',{p_comment_id:commentId});
+    if(error)throw error;
+    const btn=document.getElementById('cl-'+commentId);
+    if(btn){btn.classList.toggle('liked',data.liked);btn.innerHTML=(data.liked?'♥':'♡')+' <span>'+data.count+'</span>';}
+  }catch{toast('Like failed');}
+}
+async function pinComment(commentId){
+  if(!user||!cloud)return;
+  try{
+    const{data,error}=await cloud.rpc('pin_comment',{p_comment_id:commentId});
+    if(error)throw error;
+    if(data?.error==='max_pinned'){toast('Max 3 pinned comments');return;}
+    await loadProfileComments(_profileCarId);
+  }catch{toast('Pin failed');}
+}
+async function unpinComment(commentId){
+  if(!user||!cloud)return;
+  try{
+    await cloud.rpc('unpin_comment',{p_comment_id:commentId});
+    await loadProfileComments(_profileCarId);
+  }catch{toast('Unpin failed');}
 }
 function timeAgo(iso){
   const secs=Math.floor((Date.now()-new Date(iso))/1000);
