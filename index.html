@@ -2488,7 +2488,7 @@ async function submitComment(){
     if(error)throw error;
     ta.value='';
     await loadProfileComments(_profileCarId);
-  }catch{toast('Comment failed');}
+  }catch(e){toast('Comment failed: '+(e?.message||e));console.error('submitComment',e);}
 }
 async function submitReply(parentId){
   if(!user||!cloud||!_profileCarId)return;
